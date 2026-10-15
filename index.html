@@ -31,7 +31,13 @@ body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--mincho);ove
 #ctl button:focus-visible{outline:2px solid var(--lamp)}
 #ctl small{display:block;font-size:11px;color:var(--muted);letter-spacing:.05em;margin-top:3px}
 .ov{position:fixed;inset:0;display:grid;place-items:center;background:rgba(7,5,4,.92);padding:max(16px,env(safe-area-inset-left,0px));z-index:5}
-.ov[hidden]{display:none}
+.ov[hidden]{display:none!important}
+#intro{background:rgba(7,5,4,.6);display:grid;place-items:center;cursor:pointer}
+#intro p{max-width:30em;text-align:center;font-size:clamp(18px,2.8vw,26px);line-height:2.1;letter-spacing:.06em;opacity:0;transition:opacity 1.2s;padding:0 max(24px,env(safe-area-inset-left,0px))}
+#intro p.on{opacity:1}
+@media (prefers-reduced-motion:reduce){#intro p{transition:none}}
+#skip{position:fixed;right:max(16px,env(safe-area-inset-right,0px));bottom:calc(16px + env(safe-area-inset-bottom,0px));font-size:12px;letter-spacing:.2em;color:var(--muted);background:none;border:0;font-family:var(--mincho);cursor:pointer;z-index:6}
+#skip:focus-visible{outline:2px solid var(--lamp)}
 .card{max-width:34em;display:grid;gap:18px;text-align:center}
 .card h1{font-size:clamp(40px,10vw,72px);margin:0;font-weight:700;letter-spacing:.1em}
 .card p{margin:0;line-height:1.9;font-size:15px}
@@ -67,6 +73,8 @@ body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--mincho);ove
     <span class="k">音が出ます。イヤホンをお薦めします。</span>
   </div>
 </div>
+
+<div class="ov" id="intro" hidden><p id="introp"></p><button id="skip">飛ばす</button></div>
 
 <div class="ov" id="result" hidden>
   <div class="card">
@@ -159,6 +167,16 @@ const sitThud=()=>{ thump(0.9); noiseBurst(A.brown,0.4,0.35,"lowpass",220,1); };
 const gasp=()=>noiseBurst(A.white,0.5,0.25,"highpass",900,0.7);
 const exhale=()=>noiseBurst(A.white,0.35,0.07,"bandpass",1400,0.8);
 const rustle=()=>noiseBurst(A.white,0.18,0.06,"bandpass",2500,2);
+const cloth=()=>{ noiseBurst(A.white,0.7,0.09,"bandpass",1800,1.2); setTimeout(()=>noiseBurst(A.white,0.4,0.05,"bandpass",2600,1.5),220); };
+const spring=()=>{ const c=A.ctx; if(!c) return; const o=c.createOscillator(); o.type="triangle"; o.frequency.setValueAtTime(95,c.currentTime); o.frequency.exponentialRampToValueAtTime(70,c.currentTime+0.5);
+  const g=c.createGain(); g.gain.setValueAtTime(0.08,c.currentTime); g.gain.exponentialRampToValueAtTime(0.001,c.currentTime+0.6); o.connect(g).connect(A.master); o.start(); o.stop(c.currentTime+0.65); };
+// 革越しのくぐもった声：音節ごとの低い唸り
+function murmur(n){ const c=A.ctx; if(!c) return; let t=c.currentTime+0.05;
+  for(let i=0;i<n;i++){ const o=c.createOscillator(); o.type="sawtooth"; const f0=120+Math.random()*70; o.frequency.setValueAtTime(f0,t); o.frequency.linearRampToValueAtTime(f0*(0.85+Math.random()*0.3),t+0.14);
+    const lp=c.createBiquadFilter(); lp.type="lowpass"; lp.frequency.value=420; lp.Q.value=0.8; const g=c.createGain(); g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(0.05,t+0.03); g.gain.exponentialRampToValueAtTime(0.0001,t+0.16);
+    o.connect(lp).connect(g).connect(A.master); o.start(t); o.stop(t+0.18); t+=0.17+Math.random()*0.08; } }
+const saw=()=>{ for(let i=0;i<5;i++) setTimeout(()=>noiseBurst(A.white,0.16,0.12,"bandpass",2200,3),i*230); };
+const hammer=(n)=>{ for(let i=0;i<n;i++) setTimeout(()=>{ thump(0.5); noiseBurst(A.white,0.05,0.2,"highpass",3000,1); },i*420); };
 
 // ---------- Sitters ----------
 const PATTERNS={
@@ -196,12 +214,32 @@ function spot(x,y){ S.spots.push({x,y,l:1}); if(S.spots.length>6) S.spots.shift(
 const susEl=$("sus"), balI=$("bal").firstElementChild, bb=$("bb");
 function addSus(v,reason){ S.sus=Math.min(100,S.sus+v); if(reason){ S.log[reason]=(S.log[reason]||0)+1; susEl.classList.add("flash"); setTimeout(()=>susEl.classList.remove("flash"),600); } }
 
-function startGame(){ audioInit(); A.ctx.resume && A.ctx.resume(); reset(); S.state="wait"; S.wait=2.5; S.steps=0;
+const INTRO=[
+  ["私は、醜い男でございます。",3.6],
+  ["世に認められぬ椅子職人として、ただ椅子ばかりを拵えて参りました。",4.6],
+  ["ある時ふと、途方もない考えが、頭をもたげたのでございます。",4.4],
+  ["この大きな肘掛椅子の胴に、人ひとり、忍び込める隙間を拵えたなら。",4.8,"saw"],
+  ["鋸を引き、釘を打ち、革を張り、綿を詰め。",4.2,"hammer"],
+  ["そして私は、その中へ。",3.4,"cloth"],
+  ["蓋が、閉ざされた。",2.8,"thud"],
+];
+let introTimer=null;
+function beginIntro(){ audioInit(); A.ctx.resume && A.ctx.resume(); reset(); S.state="intro"; S.dark=0.12; $("title").hidden=true; $("result").hidden=true; $("intro").hidden=false; say("");
+  let i=0; const p=$("introp");
+  const show=()=>{ if(i>=INTRO.length){ endIntro(); return; } const [t,d,fx]=INTRO[i++]; p.classList.remove("on"); setTimeout(()=>{ p.textContent=t; p.classList.add("on"); },60);
+    if(fx==="saw") saw(); if(fx==="hammer") hammer(4); if(fx==="cloth"){ cloth(); spring(); } if(fx==="thud"){ sitThud(); S.dark=1; }
+    introTimer=setTimeout(show,d*1000); };
+  $("intro").onclick=()=>{ clearTimeout(introTimer); show(); };
+  show(); }
+function endIntro(){ clearTimeout(introTimer); $("intro").hidden=true; S.dark=1; beginDay(); }
+function beginDay(){ S.state="wait"; S.wait=2.5; S.steps=0;
   const third=Math.random()<0.5?SITTERS[2]:SITTERS[3];
-  S.queue=[SITTERS[0],SITTERS[1],third,SITTERS[4]]; $("title").hidden=true; $("result").hidden=true; say("蓋が、閉ざされた。",true); }
+  S.queue=[SITTERS[0],SITTERS[1],third,SITTERS[4]]; say("蓋が、閉ざされた。",true); }
+function startGame(){ beginIntro(); }
+function restartGame(){ audioInit(); reset(); S.state="wait"; $("title").hidden=true; $("result").hidden=true; $("intro").hidden=true; beginDay(); }
 
 function beginSit(st){ S.sitter=st; S.ts=0; S.w=0; S.lineIdx=0; S.listen=null; S.fidgetT=0;
-  S.targets=PATTERNS[st.pat].map(b=>b.slice()); S.blobs=S.targets.map(b=>[b[0],b[1],b[2],0]); sitThud(); say(st.dog?"（何かが、ひらりと飛び乗った）":"（何者かが、どっかと腰を下ろした）"); }
+  S.targets=PATTERNS[st.pat].map(b=>b.slice()); S.blobs=S.targets.map(b=>[b[0],b[1],b[2],0]); sitThud(); if(!st.dog){ cloth(); spring(); } say(st.dog?"（何かが、ひらりと飛び乗った）":"（何者かが、どっかと腰を下ろした）"); }
 
 function endSit(){ S.frags.push(S.sitter.frag); S.seen.push(S.sitter); S.state="leave"; S.ts=0; say(S.sitter.dog?"（獣は降りて行った）":"（重みが、ふっと去った）",true); }
 
@@ -229,7 +267,7 @@ function update(now){
     if(S.steps<=0){ S.steps=0.55+Math.random()*0.2; step(Math.max(0,S.wait)); if(S.wait<2.2&&S.wait>0.4) say("（足音が、こちらへ近づいて来る）",true); }
     if(S.wait<=0){ if(S.queue.length){ S.state="sit"; beginSit(S.queue.shift()); } else finish(false); } }
   if(sitting){ const st=S.sitter; S.ts+=dt; S.w=Math.min(1,S.w+dt*2.2); S.heat=Math.min(1,S.heat+dt*0.02);
-    while(S.lineIdx<st.lines.length&&st.lines[S.lineIdx][0]<=S.ts){ const l=st.lines[S.lineIdx++][1]; say(l,l.startsWith("（")); if(l.includes("雑誌")||l.includes("頁")||l.includes("本")) { spot(0.5+Math.random()*0.2-0.1,0.78); rustle(); } if(st.snore&&l.includes("いびき")) thump(0.3); }
+    while(S.lineIdx<st.lines.length&&st.lines[S.lineIdx][0]<=S.ts){ const l=st.lines[S.lineIdx++][1]; say(l,l.startsWith("（")); if(!l.startsWith("（")&&l!=="……。") murmur(Math.min(9,Math.max(3,Math.round(l.length/3)))); if(l.includes("雑誌")||l.includes("頁")||l.includes("本")) { spot(0.5+Math.random()*0.2-0.1,0.78); rustle(); } if(st.snore&&l.includes("いびき")) thump(0.3); }
     if(!S.listen){ for(const lt of st.listen){ if(S.ts>=lt&&S.ts<lt+0.05){ S.listen={t:3.6,held:0,len:3.6}; S.listens++; bb.classList.add("cue");
           say(st.dog?"（獣が、蓋の隙に鼻を寄せている）":(S.listens===1?"（……上の者が、ふと静まった。耳を澄ませている）":"（……ふと、静まった）")); break; } } }
     else { S.listen.t-=dt; if(S.hold) S.listen.held+=dt;
@@ -253,7 +291,7 @@ function update(now){
   S.drift+=(Math.random()-0.5)*dt*(sitting?1.6:0.5); S.drift-=inp*dt*1.1; S.drift=Math.max(-1,Math.min(1,S.drift));
   S.creakCd-=dt;
   S.streakT=(S.streakT||0)-dt; if(S.streakT<=0) S.streak=0;
-  if(Math.abs(S.drift)>0.55&&S.creakCd<=0&&S.state!=="result"&&S.state!=="caught"){ S.creakCd=1.4; creak(); S.streak=(S.streak||0)+1; S.streakT=5;
+  if(Math.abs(S.drift)>0.55&&S.creakCd<=0&&S.state!=="result"&&S.state!=="caught"&&S.state!=="intro"){ S.creakCd=1.4; creak(); S.streak=(S.streak||0)+1; S.streakT=5;
     const base=S.listen?30:(sitting?12:6); addSus(Math.round(base*(1+(S.streak-1)*0.7)),"きしみ"); spot(S.drift>0?0.9:0.1,0.4+Math.random()*0.2); S.drift*=0.5;
     if(!S.listen){ if(sitting&&S.streak>=3) say(S.sitter.dog?"（獣が蓋に鼻面を押しつけた）":"……この椅子は、ずいぶんと鳴くな。"); else if(!sitting&&S.streak>=3) say("（隣室で、足音がぴたりと止んだ）"); else say("（椅子が、鳴いた）",true); } }
   S.tilt+=(S.drift*0.07-S.tilt)*Math.min(1,dt*4);
@@ -264,7 +302,7 @@ function update(now){
     if(!wasSit){ S.sitter={name:"女中",kg:0,dog:false}; } say(S.sitter&&S.sitter.dog?"（獣は吠え止まぬ。誰かが来る）":(wasSit?"……誰か、居るのか。":"（女中が入って来て、椅子の前で足を止めた）")); }
   window.__isu=()=>S;
   // heartbeat
-  const bpm=58+S.lung*85+S.sus*0.5; S.beat-=dt; if(S.beat<=0){ S.beat=60/bpm; thump(0.15+S.lung*0.5+S.sus*0.003); S.pulse=1; }
+  const bpm=58+S.lung*85+S.sus*0.5; S.beat-=dt; if(S.beat<=0){ S.beat=60/bpm; if(S.state!=="intro"&&S.state!=="title") thump(0.15+S.lung*0.5+S.sus*0.003); S.pulse=1; }
   S.pulse=Math.max(0,S.pulse-dt*4);
   // 12fps quantized blob/spot motion
   S.q+=dt; if(S.q>=1/12){ S.q-=1/12;
@@ -293,7 +331,8 @@ holdBtn($("br"),()=>{keys.right=true;},()=>{keys.right=false;});
 cv.addEventListener("pointerdown",e=>{ e.preventDefault(); S.hold=S.gaspCd<=0; $("bb").classList.add("on"); });
 for(const ev of ["pointerup","pointercancel"]) cv.addEventListener(ev,()=>{ S.hold=false; $("bb").classList.remove("on"); });
 $("start").addEventListener("click",startGame);
-$("again").addEventListener("click",startGame);
+$("again").addEventListener("click",restartGame);
+$("skip").addEventListener("click",e=>{ e.stopPropagation(); endIntro(); });
 $("copy").addEventListener("click",()=>{ const t=S.share||""; const done=()=>{$("toast").textContent="写し取りました。";};
   const fb=()=>{ $("toast").textContent=t; }; if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(t).then(done).catch(fb); else fb(); });
 })();
