@@ -45,7 +45,9 @@ body.intro #ctl,body.intro #bal,body.intro #lung,body.intro #lunglabel,body.intr
 .card .k{color:var(--muted);font-size:13px;line-height:1.8}
 .card button{justify-self:center;padding:14px 36px;border:1px solid var(--lamp);background:none;color:var(--lamp);font-family:var(--mincho);font-size:17px;letter-spacing:.2em;cursor:pointer;border-radius:2px}
 .card button:focus-visible{outline:2px solid var(--fg)}
-.letter{text-align:left;border:1px solid rgba(227,215,195,.2);padding:18px 22px;line-height:2;font-size:14.5px;max-height:38vh;overflow:auto;min-width:0}
+.letter{text-align:left;border:1px solid rgba(227,215,195,.2);padding:14px 18px;line-height:2;font-size:14px;max-height:22vh;overflow:auto;min-width:0}
+#cardimg{justify-self:center;height:min(34vh,420px);width:auto;max-width:100%;aspect-ratio:1080/1350;background:#0d0907;border:1px solid rgba(227,215,195,.15)}
+#result .card{gap:14px;max-height:100%;overflow:auto}
 .letter b{color:var(--lamp);font-weight:500}
 .share{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
 .share button{padding:10px 20px;font-size:14px}
@@ -81,8 +83,9 @@ body.intro #ctl,body.intro #bal,body.intro #lung,body.intro #lunglabel,body.intr
   <div class="card">
     <span class="k" id="rk"></span>
     <h1 id="rh" style="font-size:clamp(28px,6vw,44px)"></h1>
+    <img id="cardimg" alt="結果の画像">
     <div class="letter" id="letter"></div>
-    <div class="share"><button id="copy">記録を写す</button><button id="again">もう一夜</button></div>
+    <div class="share"><button id="save">画像を残す</button><button id="copy">記録を写す</button><button id="again">もう一夜</button></div>
     <span id="toast"></span>
   </div>
 </div>
@@ -247,17 +250,76 @@ function endSit(){ S.frags.push(S.sitter.frag); S.seen.push(S.sitter); S.state="
 function finish(caught){ S.done=true; S.caught=caught; S.state="result";
   const n=S.seen.length; const heavy=S.seen.slice().sort((a,b)=>b.kg-a.kg)[0];
   $("rk").textContent=caught?"露見":"本日の記録";
-  $("rh").textContent=caught?EPITAPH[Math.floor(Math.random()*EPITAPH.length)]:`${n}人の重みを知りました。`;
+  S.epitaph=caught?EPITAPH[Math.floor(Math.random()*EPITAPH.length)]:"";
+  $("rh").textContent=caught?S.epitaph:`${n}人の重みを知りました。`;
   let html="";
   const reasons=Object.entries(S.log).map(([k,v])=>`${k}が${["","一","二","三","四","五","六","七","八","九"][v]||v}度`).join("、");
   if(caught){ html+=`<p>${S.sitter?S.sitter.name:"何者か"}が立ち上がり、蓋を開けたのでございます。${reasons?`${reasons}。それで十分でした。`:""}</p>`; if(S.frags.length) html+=`<p>書きかけの手紙には、こう記してありました。</p>`; }
-  else if(reasons) html+=`<p class="k">（${reasons}。それでも、気づかれはしませんでした。）</p>`;
-  else html+=`<p>奥様。私は本日、この椅子の胴の中で、${n}人の重みを知ったのでございます。</p>`;
+  else { html+=`<p>奥様。私は本日、この椅子の胴の中で、${n}人の重みを知ったのでございます。</p>`; if(reasons) html+=`<p class="k">（${reasons}。それでも、気づかれはしませんでした。）</p>`; }
   for(const [i,f] of S.frags.entries()) html+=`<p><b>${S.seen[i].name}</b>（${S.seen[i].kg}kg）。${f}</p>`;
   if(!caught) html+=`<p>追伸。この椅子は些か固い、と皆様が仰います。</p>`;
   $("letter").innerHTML=html;
   S.share=`本日、椅子の胴の中で${n}人の重みを知りました。${heavy?`最も重き者：${heavy.name}（${heavy.kg}kg）。`:""}${caught?"露見いたしました。":"気づかれはしませんでした。"} #人間椅子`;
-  $("toast").textContent=""; $("result").hidden=false; }
+  $("toast").textContent=""; $("result").hidden=false;
+  $("cardimg").removeAttribute("src"); S.cardBlob=null;
+  drawCard(n,heavy,caught).catch(e=>console.error(e)); }
+
+// ---------- 結果カード（縦書き） ----------
+const KAN=["〇","一","二","三","四","五","六","七","八","九"];
+function kan(n){ if(n<10) return KAN[n]; let s=""; const h=Math.floor(n/100), t=Math.floor(n%100/10), o=n%10;
+  if(h) s+=(h>1?KAN[h]:"")+"百"; if(t) s+=(t>1?KAN[t]:"")+"十"; if(o) s+=KAN[o]; return s; }
+const ROT="ー…―（）「」〜", SMALL="ぁぃぅぇぉっゃゅょァィゥェォッャュョ";
+function vtext(g,str,x,y,size,gap){ gap=gap??1.08; let cy=y;
+  for(const ch of str){
+    if(ch===" "){ cy+=size*0.5; continue; }
+    g.save();
+    if("、。".includes(ch)){ g.fillText(ch,x+size*0.6,cy-size*0.62); }
+    else if(ROT.includes(ch)){ g.translate(x+size*0.5,cy-size*0.5); g.rotate(Math.PI/2); g.textAlign="center"; g.textBaseline="middle"; g.fillText(ch,0,0); }
+    else if(SMALL.includes(ch)){ g.fillText(ch,x+size*0.12,cy-size*0.1); }
+    else g.fillText(ch,x,cy);
+    g.restore(); cy+=size*gap; }
+  return cy; }
+async function drawCard(n,heavy,caught){
+  const W=1080,H=1350, c=document.createElement("canvas"); c.width=W; c.height=H; const g=c.getContext("2d");
+  try{ await Promise.all(["800 120px","700 52px","500 40px"].map(f=>document.fonts.load(`${f} "Shippori Mincho B1"`,"人間椅子"))); }catch(e){}
+  const F=w=>`${w} "Shippori Mincho B1","Hiragino Mincho ProN","Yu Mincho",serif`;
+  // 革の地
+  g.fillStyle="#0d0907"; g.fillRect(0,0,W,H);
+  const id=g.getImageData(0,0,W,H), d=id.data;
+  for(let i=0;i<d.length;i+=4){ const v=(Math.random()-0.5)*14; d[i]+=v; d[i+1]+=v*0.8; d[i+2]+=v*0.6; }
+  g.putImageData(id,0,0);
+  // 座った跡（最も重き者の形）
+  const pat=PATTERNS[(heavy&&heavy.pat)||"wide"], sw=760, sh=900, ox=(W-sw)/2, oy=420;
+  g.globalCompositeOperation="lighter";
+  for(const [bx,by,br,bw] of pat){ const x=ox+bx*sw, y=oy+(1-by)*sh, r=br*sw*1.25;
+    const gr=g.createRadialGradient(x,y,0,x,y,r); gr.addColorStop(0,`rgba(190,70,32,${0.55*bw})`); gr.addColorStop(0.5,`rgba(120,36,16,${0.32*bw})`); gr.addColorStop(1,"rgba(0,0,0,0)");
+    g.fillStyle=gr; g.beginPath(); g.arc(x,y,r,0,Math.PI*2); g.fill(); }
+  g.globalCompositeOperation="source-over";
+  // 縁の暗がり
+  const vg=g.createRadialGradient(W/2,H/2,H*0.25,W/2,H/2,H*0.75); vg.addColorStop(0,"rgba(0,0,0,0)"); vg.addColorStop(1,"rgba(0,0,0,0.7)"); g.fillStyle=vg; g.fillRect(0,0,W,H);
+  // 罫
+  g.strokeStyle="rgba(217,145,59,.45)"; g.lineWidth=2; g.strokeRect(36,36,W-72,H-72);
+  g.strokeStyle="rgba(217,145,59,.18)"; g.lineWidth=1; g.strokeRect(48,48,W-96,H-96);
+  // 題
+  g.fillStyle="#E8DCC6"; g.font=F(800)+""; g.font=`800 120px "Shippori Mincho B1","Hiragino Mincho ProN","Yu Mincho",serif`;
+  vtext(g,"人間椅子",W-250,200,120,1.12);
+  g.fillStyle="rgba(232,220,198,.55)"; g.font=`500 30px "Shippori Mincho B1","Hiragino Mincho ProN","Yu Mincho",serif`;
+  vtext(g,"江戸川乱歩より",W-112,214,30);
+  // 本文の列（右から左）
+  let x=W-380; const col=(s,size,color,w)=>{ g.fillStyle=color; g.font=`${w||500} ${size}px "Shippori Mincho B1","Hiragino Mincho ProN","Yu Mincho",serif`; vtext(g,s,x,200,size); x-=size*1.75; };
+  col("本日、椅子の胴の中で",44,"#E8DCC6");
+  col(`${kan(n)}人の重みを知りました。`,44,"#E8DCC6");
+  x-=24;
+  if(heavy){ col("最も重き者",34,"rgba(232,220,198,.6)"); col(`${heavy.name}　${kan(heavy.kg)}瓩`,52,"#D9913B",700); }
+  x-=24;
+  if(caught){ col("露見。",52,"#C24A40",700); const ep=S.epitaph||""; const parts=ep.length>18?[ep.slice(0,ep.indexOf("、")+1)||ep.slice(0,16),ep.slice((ep.indexOf("、")+1)||16)]:[ep];
+    for(const p of parts) if(p) col(p,38,"#E8DCC6"); }
+  else col("気づかれはしませんでした。",44,"#E8DCC6");
+  // 署名
+  g.fillStyle="rgba(232,220,198,.5)"; g.font=`500 28px "Shippori Mincho B1","Hiragino Mincho ProN","Yu Mincho",serif`; g.textBaseline="alphabetic";
+  g.fillText("#人間椅子",84,H-90);
+  const blob=await new Promise(r=>c.toBlob(r,"image/png")); S.cardBlob=blob;
+  $("cardimg").src=URL.createObjectURL(blob); }
 
 // ---------- Update ----------
 let last=performance.now();
@@ -301,7 +363,7 @@ function update(now){
   S.sus=Math.max(0,S.sus-dt*(sitting?0.4:1.2));
   if(S.sus>=99&&S.state!=="caught"&&S.state!=="result"){ const wasSit=S.state==="sit"; S.state="caught"; S.ts=0; S.listen=null; bb.classList.remove("cue");
     if(!wasSit){ S.sitter={name:"女中",kg:0,dog:false}; } say(S.sitter&&S.sitter.dog?"（獣は吠え止まぬ。誰かが来る）":(wasSit?"……誰か、居るのか。":"（女中が入って来て、椅子の前で足を止めた）")); }
-  window.__isu=()=>S;
+  window.__isu=()=>S; window.__fin=finish;
   // heartbeat
   const bpm=58+S.lung*85+S.sus*0.5; S.beat-=dt; if(S.beat<=0){ S.beat=60/bpm; if(S.state!=="intro"&&S.state!=="title") thump(0.15+S.lung*0.5+S.sus*0.003); S.pulse=1; }
   S.pulse=Math.max(0,S.pulse-dt*4);
@@ -334,6 +396,11 @@ for(const ev of ["pointerup","pointercancel"]) cv.addEventListener(ev,()=>{ S.ho
 $("start").addEventListener("click",startGame);
 $("again").addEventListener("click",restartGame);
 $("skip").addEventListener("click",e=>{ e.stopPropagation(); endIntro(); });
+$("save").addEventListener("click",async()=>{ const b=S.cardBlob; if(!b){ $("toast").textContent="画像を描いております。少々お待ちを。"; return; }
+  const file=new File([b],"ningen-isu.png",{type:"image/png"});
+  try{ if(navigator.canShare&&navigator.canShare({files:[file]})){ await navigator.share({files:[file],text:S.share}); return; } }catch(e){ if(e&&e.name==="AbortError") return; }
+  try{ const a=document.createElement("a"); a.href=URL.createObjectURL(b); a.download="ningen-isu.png"; document.body.appendChild(a); a.click(); a.remove(); }catch(e){}
+  $("toast").textContent="保存されない時は、画像を長押ししてください。"; });
 $("copy").addEventListener("click",()=>{ const t=S.share||""; const done=()=>{$("toast").textContent="写し取りました。";};
   const fb=()=>{ $("toast").textContent=t; }; if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(t).then(done).catch(fb); else fb(); });
 })();
