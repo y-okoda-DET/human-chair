@@ -1,0 +1,300 @@
+<title>人間椅子 試作</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho+B1:wght@500;700&display=swap">
+<style>
+/* 単一テーマ：椅子の内側は常に暗い。ランプの橙だけが文字に灯る */
+:root{--bg:#070504;--fg:#E3D7C3;--muted:#8E8070;--lamp:#D9913B;--red:#B33A33;--mincho:"Shippori Mincho B1","Hiragino Mincho ProN","Yu Mincho",serif;color-scheme:dark}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--mincho);overflow:hidden;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
+#c{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none}
+.hud{position:fixed;left:0;right:0;pointer-events:none}
+#sus{top:0;height:5px;background:rgba(255,255,255,.07)}
+#sus i{display:block;height:100%;width:0;background:var(--red);transition:width .25s}
+#sus.flash i{box-shadow:0 0 14px 3px var(--red)}
+#suslabel{position:fixed;top:calc(8px + env(safe-area-inset-top,0px));left:max(16px,env(safe-area-inset-left,0px));font-size:12px;letter-spacing:.2em;color:var(--muted);pointer-events:none}
+#bal{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(92px + env(safe-area-inset-bottom,0px));width:min(220px,50vw);height:2px;background:rgba(255,255,255,.12);pointer-events:none}
+#bal::before,#bal::after{content:"";position:absolute;top:-4px;width:1px;height:10px;background:rgba(255,255,255,.25)}
+#bal::before{left:22%}#bal::after{right:22%}
+#bal i{position:absolute;top:-5px;left:50%;width:4px;height:12px;margin-left:-2px;background:var(--fg);transition:background .2s}
+#bal i.warn{background:var(--red)}
+#ctl button.cue{animation:cue .7s ease-in-out infinite alternate;border-color:var(--lamp)}
+@keyframes cue{from{background:rgba(217,145,59,.1)}to{background:rgba(217,145,59,.45)}}
+@media (prefers-reduced-motion:reduce){#ctl button.cue{animation:none;background:rgba(217,145,59,.35)}}
+#lung{position:fixed;right:max(16px,env(safe-area-inset-right,0px));top:50%;transform:translateY(-50%);width:4px;height:160px;background:rgba(255,255,255,.07);pointer-events:none}
+#lung i{position:absolute;bottom:0;left:0;right:0;height:0;background:var(--lamp)}
+#lunglabel{position:fixed;right:calc(max(16px,env(safe-area-inset-right,0px)) + 12px);top:50%;transform:translateY(-50%);writing-mode:vertical-rl;font-size:12px;letter-spacing:.3em;color:var(--muted);pointer-events:none}
+#sub{bottom:calc(120px + env(safe-area-inset-bottom,0px));text-align:center;padding:0 max(24px,env(safe-area-inset-left,0px));font-size:clamp(17px,2.6vw,24px);line-height:1.7;text-shadow:0 0 12px #000;min-height:3em;transition:opacity .4s}
+#sub.dim{opacity:.55}
+#ctl{position:fixed;left:0;right:0;bottom:0;display:grid;grid-template-columns:1fr 2fr 1fr;gap:8px;padding:0 max(12px,env(safe-area-inset-left,0px)) calc(12px + env(safe-area-inset-bottom,0px)) max(12px,env(safe-area-inset-right,0px));}
+#ctl button{height:72px;border:1px solid rgba(227,215,195,.25);background:rgba(20,12,8,.6);color:var(--fg);font-family:var(--mincho);font-size:16px;letter-spacing:.1em;border-radius:4px;touch-action:none}
+#ctl button:active,#ctl button.on{background:rgba(217,145,59,.25);border-color:var(--lamp)}
+#ctl button:focus-visible{outline:2px solid var(--lamp)}
+#ctl small{display:block;font-size:11px;color:var(--muted);letter-spacing:.05em;margin-top:3px}
+.ov{position:fixed;inset:0;display:grid;place-items:center;background:rgba(7,5,4,.92);padding:max(16px,env(safe-area-inset-left,0px));z-index:5}
+.ov[hidden]{display:none}
+.card{max-width:34em;display:grid;gap:18px;text-align:center}
+.card h1{font-size:clamp(40px,10vw,72px);margin:0;font-weight:700;letter-spacing:.1em}
+.card p{margin:0;line-height:1.9;font-size:15px}
+.card .k{color:var(--muted);font-size:13px;line-height:1.8}
+.card button{justify-self:center;padding:14px 36px;border:1px solid var(--lamp);background:none;color:var(--lamp);font-family:var(--mincho);font-size:17px;letter-spacing:.2em;cursor:pointer;border-radius:2px}
+.card button:focus-visible{outline:2px solid var(--fg)}
+.letter{text-align:left;border:1px solid rgba(227,215,195,.2);padding:18px 22px;line-height:2;font-size:14.5px;max-height:38vh;overflow:auto;min-width:0}
+.letter b{color:var(--lamp);font-weight:500}
+.share{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+.share button{padding:10px 20px;font-size:14px}
+#toast{font-size:13px;color:var(--muted);min-height:1.4em}
+</style>
+
+<canvas id="c"></canvas>
+<div class="hud" id="sus"><i></i></div>
+<span id="suslabel">気配</span>
+<div id="lung"><i></i></div><span id="lunglabel">息</span>
+<div class="hud" id="sub"></div>
+<div id="bal"><i></i></div>
+<div id="ctl">
+  <button id="bl" aria-label="左に重心">◀<small>←</small></button>
+  <button id="bb">息を殺す<small>押している間 / Space</small></button>
+  <button id="br" aria-label="右に重心">▶<small>→</small></button>
+</div>
+
+<div class="ov" id="title">
+  <div class="card">
+    <span class="k">江戸川乱歩「人間椅子」より · 試作第一号</span>
+    <h1>人間椅子</h1>
+    <p>私は今、革張りの肘掛椅子の胴の中に、身を潜めております。<br>光は届きません。革一枚を隔てて伝わるのは、重みと、体温と、物音ばかり。</p>
+    <p class="k">上の者が耳を澄ませたなら、息を殺すのです。<br>椅子が鳴いたなら、重心を戻すのです。<br>気配が満ちた時、すべてが終ります。</p>
+    <button id="start">蓋を閉ざす</button>
+    <span class="k">音が出ます。イヤホンをお薦めします。</span>
+  </div>
+</div>
+
+<div class="ov" id="result" hidden>
+  <div class="card">
+    <span class="k" id="rk"></span>
+    <h1 id="rh" style="font-size:clamp(28px,6vw,44px)"></h1>
+    <div class="letter" id="letter"></div>
+    <div class="share"><button id="copy">記録を写す</button><button id="again">もう一夜</button></div>
+    <span id="toast"></span>
+  </div>
+</div>
+
+<script>
+(() => {
+// ---------- WebGL ----------
+const cv = document.getElementById("c");
+const gl = cv.getContext("webgl2", {antialias:false, alpha:false});
+const VS = `#version 300 es
+in vec2 aPos;
+uniform vec2 uScale; uniform float uTilt; uniform vec4 uBlobs[8]; uniform int uCount;
+out vec2 vUv; out float vP; out vec3 vPos;
+float pressure(vec2 uv){ float p=0.0; for(int i=0;i<8;i++){ if(i>=uCount) break; vec4 b=uBlobs[i]; float d=distance(uv,b.xy)/max(b.z,0.001); p+=b.w*exp(-d*d*2.2);} return p; }
+void main(){
+  vec2 uv=aPos*0.5+0.5; vUv=uv; float p=pressure(uv); vP=p;
+  vec3 pos=vec3(aPos, p*0.45); vPos=pos;
+  float persp=1.0/(1.9-pos.z); vec2 sp=pos.xy*persp*1.35;
+  float c=cos(uTilt), s=sin(uTilt); sp=vec2(sp.x*c-sp.y*s, sp.x*s+sp.y*c);
+  gl_Position=vec4(sp*uScale, 0.0, 1.0);
+}`;
+const FS = `#version 300 es
+precision highp float;
+in vec2 vUv; in float vP; in vec3 vPos;
+uniform float uTime,uHeat,uPulse,uDark; uniform vec3 uSpots[6]; uniform int uSpotCount;
+out vec4 o;
+float hash(vec2 p){ return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453); }
+float noise(vec2 p){ vec2 i=floor(p), f=fract(p); f=f*f*(3.0-2.0*f);
+  return mix(mix(hash(i),hash(i+vec2(1,0)),f.x),mix(hash(i+vec2(0,1)),hash(i+vec2(1,1)),f.x),f.y); }
+float fbm(vec2 p){ return noise(p)*0.5+noise(p*2.1)*0.3+noise(p*4.3)*0.2; }
+void main(){
+  vec3 N=normalize(cross(dFdx(vPos),dFdy(vPos)));
+  float g=fbm(vUv*38.0); float pores=smoothstep(0.6,0.8,noise(vUv*170.0));
+  vec3 base=vec3(0.105,0.068,0.052)*(0.75+0.5*g)-pores*0.025;
+  vec3 L=normalize(vec3(0.15,0.85,0.55));
+  float diff=max(dot(N,L),0.0);
+  vec3 col=base*(0.22+diff*1.0);
+  float spec=pow(max(dot(reflect(-L,N),vec3(0,0,1)),0.0),28.0)*0.22;
+  col+=spec*vec3(0.55,0.42,0.3);
+  float p=clamp(vP,0.0,1.3);
+  col=mix(col,vec3(0.50,0.21,0.12),p*0.5);
+  col+=vec3(0.28,0.09,0.02)*uHeat*smoothstep(0.05,1.2,p);
+  for(int i=0;i<6;i++){ if(i>=uSpotCount) break; vec3 s=uSpots[i]; float d=distance(vUv,s.xy); col+=vec3(0.95,0.8,0.55)*s.z*exp(-d*d*700.0); }
+  float seam=exp(-pow((vUv.y-0.975)*70.0,2.0))*0.3*(0.85+0.15*sin(uTime*1.7));
+  col+=seam*vec3(0.9,0.72,0.45);
+  float r=length(vUv-0.5);
+  col*=1.0-smoothstep(0.3,0.8,r)*(0.8+0.2*uPulse);
+  col*=uDark;
+  o=vec4(col,1.0);
+}`;
+function sh(t,s){ const x=gl.createShader(t); gl.shaderSource(x,s); gl.compileShader(x); if(!gl.getShaderParameter(x,gl.COMPILE_STATUS)) console.error(gl.getShaderInfoLog(x)); return x; }
+const prog=gl.createProgram(); gl.attachShader(prog,sh(gl.VERTEX_SHADER,VS)); gl.attachShader(prog,sh(gl.FRAGMENT_SHADER,FS)); gl.linkProgram(prog); gl.useProgram(prog);
+const N=90, verts=[], idx=[];
+for(let j=0;j<=N;j++)for(let i=0;i<=N;i++) verts.push(i/N*2-1, j/N*2-1);
+for(let j=0;j<N;j++)for(let i=0;i<N;i++){ const a=j*(N+1)+i,b=a+1,c=a+N+1,d=c+1; idx.push(a,b,c,b,d,c); }
+const vao=gl.createVertexArray(); gl.bindVertexArray(vao);
+const vb=gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER,vb); gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(verts),gl.STATIC_DRAW);
+const loc=gl.getAttribLocation(prog,"aPos"); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc,2,gl.FLOAT,false,0,0);
+const ib=gl.createBuffer(); gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,ib); gl.bufferData(gl.ELEMENT_ARRAY_BUFFER,new Uint32Array(idx),gl.STATIC_DRAW);
+const U={}; for(const n of ["uScale","uTilt","uBlobs","uCount","uTime","uHeat","uPulse","uDark","uSpots","uSpotCount"]) U[n]=gl.getUniformLocation(prog,n);
+function resize(){ const d=Math.min(devicePixelRatio||1,2); cv.width=innerWidth*d; cv.height=innerHeight*d; gl.viewport(0,0,cv.width,cv.height);
+  const a=cv.width/cv.height; const s=a>1?[1.25,1.25*a]:[1.25/a,1.25]; gl.uniform2f(U.uScale,s[0],s[1]); }
+addEventListener("resize",resize); resize();
+
+// ---------- Audio ----------
+const A={ctx:null};
+function audioInit(){ if(A.ctx) return; const c=new (window.AudioContext||window.webkitAudioContext)(); A.ctx=c;
+  A.master=c.createGain(); A.master.gain.value=0.8; A.master.connect(c.destination);
+  const len=c.sampleRate*2, buf=c.createBuffer(1,len,c.sampleRate), d=buf.getChannelData(0); let last=0;
+  for(let i=0;i<len;i++){ const w=Math.random()*2-1; last=(last+0.02*w)/1.02; d[i]=last*3.5; } A.brown=buf;
+  const wb=c.createBuffer(1,len,c.sampleRate), wd=wb.getChannelData(0); for(let i=0;i<len;i++) wd[i]=Math.random()*2-1; A.white=wb;
+  const amb=c.createBufferSource(); amb.buffer=A.brown; amb.loop=true; const af=c.createBiquadFilter(); af.type="lowpass"; af.frequency.value=180;
+  const ag=c.createGain(); ag.gain.value=0.05; amb.connect(af).connect(ag).connect(A.master); amb.start(); }
+function noiseBurst(buf,dur,gain,ftype,freq,q){ const c=A.ctx; if(!c) return; const s=c.createBufferSource(); s.buffer=buf; const f=c.createBiquadFilter(); f.type=ftype; f.frequency.value=freq; f.Q.value=q||1;
+  const g=c.createGain(); g.gain.setValueAtTime(gain,c.currentTime); g.gain.exponentialRampToValueAtTime(0.001,c.currentTime+dur); s.connect(f).connect(g).connect(A.master); s.start(); s.stop(c.currentTime+dur+0.05); }
+function thump(gain){ const c=A.ctx; if(!c) return; const o=c.createOscillator(); o.type="sine"; o.frequency.setValueAtTime(58,c.currentTime); o.frequency.exponentialRampToValueAtTime(38,c.currentTime+0.12);
+  const g=c.createGain(); g.gain.setValueAtTime(gain,c.currentTime); g.gain.exponentialRampToValueAtTime(0.001,c.currentTime+0.16); o.connect(g).connect(A.master); o.start(); o.stop(c.currentTime+0.2); }
+function creak(){ const c=A.ctx; if(!c) return; const o=c.createOscillator(); o.type="sawtooth"; o.frequency.setValueAtTime(210,c.currentTime); o.frequency.exponentialRampToValueAtTime(120,c.currentTime+0.3);
+  const f=c.createBiquadFilter(); f.type="bandpass"; f.frequency.value=600; f.Q.value=6; const g=c.createGain(); g.gain.setValueAtTime(0.12,c.currentTime); g.gain.exponentialRampToValueAtTime(0.001,c.currentTime+0.35);
+  o.connect(f).connect(g).connect(A.master); o.start(); o.stop(c.currentTime+0.4); }
+const step=(dist)=>noiseBurst(A.brown,0.09,0.5/(1+dist*2),"lowpass",300,1);
+const sitThud=()=>{ thump(0.9); noiseBurst(A.brown,0.4,0.35,"lowpass",220,1); };
+const gasp=()=>noiseBurst(A.white,0.5,0.25,"highpass",900,0.7);
+const exhale=()=>noiseBurst(A.white,0.35,0.07,"bandpass",1400,0.8);
+const rustle=()=>noiseBurst(A.white,0.18,0.06,"bandpass",2500,2);
+
+// ---------- Sitters ----------
+const PATTERNS={
+  wide:[[0.37,0.56,0.17,1.0],[0.63,0.56,0.17,1.0],[0.40,0.30,0.15,0.6],[0.60,0.30,0.15,0.6]],
+  narrow:[[0.42,0.55,0.12,0.9],[0.58,0.55,0.12,0.9],[0.43,0.33,0.10,0.5],[0.57,0.33,0.10,0.5]],
+  paws:[[0.45,0.6,0.05,0.9],[0.55,0.6,0.05,0.9],[0.45,0.45,0.05,0.8],[0.55,0.45,0.05,0.8]],
+};
+const SITTERS=[
+  {name:"太った紳士",kg:92,dur:28,fidget:0.35,listen:[9,19],pat:"wide",jit:0.03,
+   lines:[[2,"ふむ、些か固いな、この椅子は。"],[6,"（雑誌を繰る音がする）"],[13,"……妙に温かいではないか。"],[16,"気の迷いであろう。"],[23,"（雑誌で膝を打っている）"]],
+   frag:"湿った羅紗の匂い。雑誌で膝を打つ癖。些か固い、と仰いました。"},
+  {name:"若い女中",kg:48,dur:17,fidget:0.6,listen:[7],pat:"narrow",jit:0.05,
+   lines:[[1,"ほんの少しだけ。誰も見てやしないもの。"],[4,"（小声の鼻歌）"],[11,"……今、何か動きやしなかった？"],[14,"（腰を浮かせ、思い直して、また沈めた）"]],
+   frag:"石鹸の匂い。踵を浮かせて腰掛ける癖。鼻歌は三節目で絶えました。"},
+  {name:"屋敷の犬",kg:9,dur:13,fidget:1.4,listen:[5,9],pat:"paws",jit:0.09,dog:true,
+   lines:[[0.5,"（何やら小さな獣が飛び乗った）"],[3,"（しきりに嗅ぎ廻っている）"],[8,"（爪が革を掻く）"],[11,"（興が尽きたらしい）"]],
+   frag:"濡れた鼻先。四つ足の小さな重み。革を二度ほど掻きました。"},
+  {name:"酔った客",kg:78,dur:30,fidget:0.12,listen:[],pat:"wide",jit:0.02,snore:true,
+   lines:[[2,"はあ、良い椅子だ、これは。"],[7,"……。"],[12,"（寝息が聞こえる）"],[20,"（いびきに変った）"],[26,"（いびきは止まぬ）"]],
+   frag:"酒と煙草の匂い。寝息はやがて鼾となり、重みはただの重みとなりました。"},
+  {name:"夫人",kg:52,dur:30,fidget:0.2,listen:[5,14,23],pat:"narrow",jit:0.02,
+   lines:[[2,"（本の頁を開く音）"],[9,"（頁を繰る手が、止まった）"],[17,"……。"],[21,"（頁が、また進み始めた）"],[27,"（本が閉じられた）"]],
+   frag:"白粉の匂い。頁の手が止まる度に、あの方はこちらへ耳を澄ませておいででした。"},
+];
+const EPITAPH=["椅子は翌朝、庭先で焼かれました。","椅子は古道具屋へ、二円で売られました。","夫人は一言も仰らず、別の椅子をお求めになりました。","警察は参りませんでした。醜い椅子職人の申し立てなど、誰一人信じなかったのでございます。"];
+
+// ---------- State ----------
+const $=id=>document.getElementById(id);
+const sub=$("sub"), susBar=$("sus").firstElementChild, lungBar=$("lung").firstElementChild;
+let S;
+function reset(){ S={state:"title",t:0,q:0,queue:[],sitter:null,ts:0,blobs:[],targets:[],w:0,heat:0,lung:0,hold:false,gaspCd:0,drift:0,tilt:0,sus:0,creakCd:0,listen:null,lineIdx:0,spots:[],frags:[],seen:[],beat:0,pulse:0,dark:1,wait:0,steps:0,caught:false,done:false,fidgetT:0,log:{},whyT:0,listens:0}; }
+reset();
+function say(t,dim){ sub.textContent=t; sub.classList.toggle("dim",!!dim); }
+function spot(x,y){ S.spots.push({x,y,l:1}); if(S.spots.length>6) S.spots.shift(); }
+const susEl=$("sus"), balI=$("bal").firstElementChild, bb=$("bb");
+function addSus(v,reason){ S.sus=Math.min(100,S.sus+v); if(reason){ S.log[reason]=(S.log[reason]||0)+1; susEl.classList.add("flash"); setTimeout(()=>susEl.classList.remove("flash"),600); } }
+
+function startGame(){ audioInit(); A.ctx.resume && A.ctx.resume(); reset(); S.state="wait"; S.wait=2.5; S.steps=0;
+  const third=Math.random()<0.5?SITTERS[2]:SITTERS[3];
+  S.queue=[SITTERS[0],SITTERS[1],third,SITTERS[4]]; $("title").hidden=true; $("result").hidden=true; say("蓋が、閉ざされた。",true); }
+
+function beginSit(st){ S.sitter=st; S.ts=0; S.w=0; S.lineIdx=0; S.listen=null; S.fidgetT=0;
+  S.targets=PATTERNS[st.pat].map(b=>b.slice()); S.blobs=S.targets.map(b=>[b[0],b[1],b[2],0]); sitThud(); say(st.dog?"（何かが、ひらりと飛び乗った）":"（何者かが、どっかと腰を下ろした）"); }
+
+function endSit(){ S.frags.push(S.sitter.frag); S.seen.push(S.sitter); S.state="leave"; S.ts=0; say(S.sitter.dog?"（獣は降りて行った）":"（重みが、ふっと去った）",true); }
+
+function finish(caught){ S.done=true; S.caught=caught; S.state="result";
+  const n=S.seen.length; const heavy=S.seen.slice().sort((a,b)=>b.kg-a.kg)[0];
+  $("rk").textContent=caught?"露見":"本日の記録";
+  $("rh").textContent=caught?EPITAPH[Math.floor(Math.random()*EPITAPH.length)]:`${n}人の重みを知りました。`;
+  let html="";
+  const reasons=Object.entries(S.log).map(([k,v])=>`${k}が${["","一","二","三","四","五","六","七","八","九"][v]||v}度`).join("、");
+  if(caught){ html+=`<p>${S.sitter?S.sitter.name:"何者か"}が立ち上がり、蓋を開けたのでございます。${reasons?`${reasons}。それで十分でした。`:""}</p>`; if(S.frags.length) html+=`<p>書きかけの手紙には、こう記してありました。</p>`; }
+  else if(reasons) html+=`<p class="k">（${reasons}。それでも、気づかれはしませんでした。）</p>`;
+  else html+=`<p>奥様。私は本日、この椅子の胴の中で、${n}人の重みを知ったのでございます。</p>`;
+  for(const [i,f] of S.frags.entries()) html+=`<p><b>${S.seen[i].name}</b>（${S.seen[i].kg}kg）。${f}</p>`;
+  if(!caught) html+=`<p>追伸。この椅子は些か固い、と皆様が仰います。</p>`;
+  $("letter").innerHTML=html;
+  S.share=`本日、椅子の胴の中で${n}人の重みを知りました。${heavy?`最も重き者：${heavy.name}（${heavy.kg}kg）。`:""}${caught?"露見いたしました。":"気づかれはしませんでした。"} #人間椅子`;
+  $("toast").textContent=""; $("result").hidden=false; }
+
+// ---------- Update ----------
+let last=performance.now();
+function update(now){
+  const dt=Math.min(0.05,(now-last)/1000); last=now; S.t+=dt;
+  const sitting=S.state==="sit";
+  if(S.state==="wait"){ S.wait-=dt; S.steps-=dt;
+    if(S.steps<=0){ S.steps=0.55+Math.random()*0.2; step(Math.max(0,S.wait)); if(S.wait<2.2&&S.wait>0.4) say("（足音が、こちらへ近づいて来る）",true); }
+    if(S.wait<=0){ if(S.queue.length){ S.state="sit"; beginSit(S.queue.shift()); } else finish(false); } }
+  if(sitting){ const st=S.sitter; S.ts+=dt; S.w=Math.min(1,S.w+dt*2.2); S.heat=Math.min(1,S.heat+dt*0.02);
+    while(S.lineIdx<st.lines.length&&st.lines[S.lineIdx][0]<=S.ts){ const l=st.lines[S.lineIdx++][1]; say(l,l.startsWith("（")); if(l.includes("雑誌")||l.includes("頁")||l.includes("本")) { spot(0.5+Math.random()*0.2-0.1,0.78); rustle(); } if(st.snore&&l.includes("いびき")) thump(0.3); }
+    if(!S.listen){ for(const lt of st.listen){ if(S.ts>=lt&&S.ts<lt+0.05){ S.listen={t:3.6,held:0,len:3.6}; S.listens++; bb.classList.add("cue");
+          say(st.dog?"（獣が、蓋の隙に鼻を寄せている）":(S.listens===1?"（……上の者が、ふと静まった。耳を澄ませている）":"（……ふと、静まった）")); break; } } }
+    else { S.listen.t-=dt; if(S.hold) S.listen.held+=dt;
+      if(S.listen.t<=0){ const f=S.listen.held/S.listen.len; S.listen=null; bb.classList.remove("cue");
+        if(f<0.7){ addSus(40,"息"); say(st.dog?"（獣が、けたたましく吠えた）":"……今、何か息をしなかったか。"); if(st.dog) noiseBurst(A.white,0.15,0.3,"bandpass",700,3); } else say(st.dog?"（獣は興味を失ったらしい）":"（どうやら、やり過ごした）",true); } }
+    S.fidgetT-=dt; if(S.fidgetT<=0&&!S.listen){ S.fidgetT=1/st.fidget*(0.6+Math.random()*0.8);
+      const base=PATTERNS[st.pat]; S.targets=base.map(b=>[b[0]+(Math.random()-0.5)*st.jit*2,b[1]+(Math.random()-0.5)*st.jit*2,b[2],b[3]]);
+      if(st.dog){ const cx=0.3+Math.random()*0.4, cy=0.35+Math.random()*0.35; S.targets=base.map(b=>[cx+(b[0]-0.5),cy+(b[1]-0.5),b[2],b[3]]); }
+      if(Math.random()<0.3) rustle(); }
+    if(S.ts>=st.dur) endSit(); }
+  if(S.state==="leave"){ S.ts+=dt; S.w=Math.max(0,S.w-dt*1.5); if(S.ts>2.2){ S.sitter=null; S.state="wait"; S.wait=3+Math.random()*3; S.steps=0.3; say("",true); } }
+  if(S.state==="caught"){ S.ts+=dt; S.w=Math.max(0,S.w-dt*3); S.dark=Math.max(0,S.dark-dt*0.6); if(S.ts>2.6) finish(true); }
+  // breath
+  if(S.gaspCd>0){ S.gaspCd-=dt; S.hold=false; }
+  if(S.hold){ S.lung=Math.min(1,S.lung+dt/7); if(S.lung>=1){ S.lung=0; S.gaspCd=1.6; gasp(); if(S.state!=="result"){ addSus(sitting?28:8,"息漏れ"); say("（堪え切れず、大きく息が漏れた）"); } } }
+  else { if(S.lung>0.15&&S.lungWas>=0.15&&!S.hold&&S.exhaled!==true){ } S.lung=Math.max(0,S.lung-dt/3); }
+  if(!S.hold&&S.lungWas>0.5&&S.lung<=0.5) exhale();
+  S.lungWas=S.lung;
+  // balance
+  const inp=(keys.right?1:0)-(keys.left?1:0);
+  S.drift+=(Math.random()-0.5)*dt*(sitting?1.6:0.5); S.drift-=inp*dt*1.1; S.drift=Math.max(-1,Math.min(1,S.drift));
+  S.creakCd-=dt;
+  S.streakT=(S.streakT||0)-dt; if(S.streakT<=0) S.streak=0;
+  if(Math.abs(S.drift)>0.55&&S.creakCd<=0&&S.state!=="result"&&S.state!=="caught"){ S.creakCd=1.4; creak(); S.streak=(S.streak||0)+1; S.streakT=5;
+    const base=S.listen?30:(sitting?12:6); addSus(Math.round(base*(1+(S.streak-1)*0.7)),"きしみ"); spot(S.drift>0?0.9:0.1,0.4+Math.random()*0.2); S.drift*=0.5;
+    if(!S.listen){ if(sitting&&S.streak>=3) say(S.sitter.dog?"（獣が蓋に鼻面を押しつけた）":"……この椅子は、ずいぶんと鳴くな。"); else if(!sitting&&S.streak>=3) say("（隣室で、足音がぴたりと止んだ）"); else say("（椅子が、鳴いた）",true); } }
+  S.tilt+=(S.drift*0.07-S.tilt)*Math.min(1,dt*4);
+  balI.style.left=((S.drift*0.5+0.5)*100)+"%"; balI.classList.toggle("warn",Math.abs(S.drift)>0.42);
+  // suspicion
+  S.sus=Math.max(0,S.sus-dt*(sitting?0.4:1.2));
+  if(S.sus>=99&&S.state!=="caught"&&S.state!=="result"){ const wasSit=S.state==="sit"; S.state="caught"; S.ts=0; S.listen=null; bb.classList.remove("cue");
+    if(!wasSit){ S.sitter={name:"女中",kg:0,dog:false}; } say(S.sitter&&S.sitter.dog?"（獣は吠え止まぬ。誰かが来る）":(wasSit?"……誰か、居るのか。":"（女中が入って来て、椅子の前で足を止めた）")); }
+  window.__isu=()=>S;
+  // heartbeat
+  const bpm=58+S.lung*85+S.sus*0.5; S.beat-=dt; if(S.beat<=0){ S.beat=60/bpm; thump(0.15+S.lung*0.5+S.sus*0.003); S.pulse=1; }
+  S.pulse=Math.max(0,S.pulse-dt*4);
+  // 12fps quantized blob/spot motion
+  S.q+=dt; if(S.q>=1/12){ S.q-=1/12;
+    for(let i=0;i<S.blobs.length;i++){ const b=S.blobs[i], t=S.targets[i]; b[0]+= (t[0]-b[0])*0.5; b[1]+=(t[1]-b[1])*0.5; b[2]=t[2]; b[3]=t[3]*S.w; }
+    for(const s of S.spots) s.l-=0.14; S.spots=S.spots.filter(s=>s.l>0); }
+  // HUD
+  susBar.style.width=S.sus+"%"; lungBar.style.height=(S.lung*100)+"%";
+  // draw
+  gl.uniform1f(U.uTime,S.t); gl.uniform1f(U.uTilt,S.tilt); gl.uniform1f(U.uHeat,S.heat); gl.uniform1f(U.uPulse,S.pulse); gl.uniform1f(U.uDark,S.dark);
+  const bl=new Float32Array(32); S.blobs.forEach((b,i)=>bl.set(b,i*4)); gl.uniform4fv(U.uBlobs,bl); gl.uniform1i(U.uCount,S.blobs.length);
+  const sp=new Float32Array(18); S.spots.forEach((s,i)=>sp.set([s.x,s.y,s.l],i*3)); gl.uniform3fv(U.uSpots,sp); gl.uniform1i(U.uSpotCount,S.spots.length);
+  gl.drawElements(gl.TRIANGLES,idx.length,gl.UNSIGNED_INT,0);
+  requestAnimationFrame(update);
+}
+requestAnimationFrame(update);
+
+// ---------- Input ----------
+const keys={left:false,right:false};
+addEventListener("keydown",e=>{ if(e.repeat) return; if(e.code==="Space"){ S.hold=S.gaspCd<=0; e.preventDefault(); } if(e.code==="ArrowLeft"||e.code==="KeyA") keys.left=true; if(e.code==="ArrowRight"||e.code==="KeyD") keys.right=true; });
+addEventListener("keyup",e=>{ if(e.code==="Space") S.hold=false; if(e.code==="ArrowLeft"||e.code==="KeyA") keys.left=false; if(e.code==="ArrowRight"||e.code==="KeyD") keys.right=false; });
+function holdBtn(el,on,off){ const d=e=>{e.preventDefault(); el.classList.add("on"); on();}; const u=e=>{el.classList.remove("on"); off();};
+  el.addEventListener("pointerdown",d); for(const ev of ["pointerup","pointercancel","pointerleave"]) el.addEventListener(ev,u); el.addEventListener("contextmenu",e=>e.preventDefault()); }
+holdBtn($("bb"),()=>{S.hold=S.gaspCd<=0;},()=>{S.hold=false;});
+holdBtn($("bl"),()=>{keys.left=true;},()=>{keys.left=false;});
+holdBtn($("br"),()=>{keys.right=true;},()=>{keys.right=false;});
+cv.addEventListener("pointerdown",e=>{ e.preventDefault(); S.hold=S.gaspCd<=0; $("bb").classList.add("on"); });
+for(const ev of ["pointerup","pointercancel"]) cv.addEventListener(ev,()=>{ S.hold=false; $("bb").classList.remove("on"); });
+$("start").addEventListener("click",startGame);
+$("again").addEventListener("click",startGame);
+$("copy").addEventListener("click",()=>{ const t=S.share||""; const done=()=>{$("toast").textContent="写し取りました。";};
+  const fb=()=>{ $("toast").textContent=t; }; if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(t).then(done).catch(fb); else fb(); });
+})();
+</script>

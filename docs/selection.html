@@ -1,0 +1,284 @@
+<title>近代文学ゲーム原作選定</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho+B1:wght@500;700;800&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap">
+<style>
+/* Layout: 縦書きの題字を左に置いた文庫本の扉 → 候補一覧の採点表 → 企画書3本を「章」として縦に並べる */
+:root{
+  --bg:#ECEEF1;          /* 冷えた和紙 */
+  --surface:#F7F8FA;
+  --fg:#1A1E29;          /* 墨紺 */
+  --muted:#5A6172;
+  --rule:#C9CED8;
+  --ai:#2C4A80;          /* 藍：本文アクセント */
+  --lemon:#C9A21E;       /* 檸檬：点・強調の塗り */
+  --blood:#8E2B2B;       /* 血の池：注意 */
+  --thread:#8C95A8;
+  --display:"Shippori Mincho B1","Hiragino Mincho ProN","Yu Mincho",serif;
+  --body:"Zen Kaku Gothic New","Hiragino Sans","Yu Gothic",system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#11141B;--surface:#181C25;--fg:#E5E2D9;--muted:#9AA1B1;--rule:#2C3240;
+  --ai:#94AEE6;--lemon:#E6C64A;--blood:#D9787A;--thread:#C7CEDC;color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#11141B;--surface:#181C25;--fg:#E5E2D9;--muted:#9AA1B1;--rule:#2C3240;
+  --ai:#94AEE6;--lemon:#E6C64A;--blood:#D9787A;--thread:#C7CEDC;color-scheme:dark}
+
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:15px;line-height:1.85}
+.wrap{max-width:1040px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:40px 80px;display:grid;gap:72px}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;margin:0;font-weight:700}
+p{margin:0}
+.label{font-size:12px;letter-spacing:.14em;color:var(--muted)}
+
+/* 扉 */
+.hero{display:grid;grid-template-columns:auto 1fr 140px;gap:40px;align-items:stretch;min-height:420px}
+.tate{writing-mode:vertical-rl;font-family:var(--display);font-weight:800;font-size:44px;line-height:1.35;letter-spacing:.08em;border-left:1px solid var(--rule);padding-left:20px}
+.tate small{display:block;font-size:15px;font-weight:500;color:var(--muted);letter-spacing:.2em;margin-top:1em}
+.lead{display:flex;flex-direction:column;justify-content:flex-end;gap:18px;min-width:0;max-width:34em}
+.lead p{font-size:16px}
+.lead .label{color:var(--ai)}
+.criteria{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
+.criteria span{font-size:12px;border:1px solid var(--rule);padding:2px 10px;border-radius:2px;color:var(--muted)}
+canvas#thread{width:100%;height:100%;min-height:300px;display:block}
+
+/* 採点表 */
+.sec-head{display:grid;gap:8px;margin-bottom:24px;max-width:40em}
+.sec-head h2{font-size:28px}
+.sec-head p{color:var(--muted)}
+.tbl-wrap{overflow-x:auto;border-top:2px solid var(--fg)}
+table{border-collapse:collapse;width:100%;min-width:820px;font-size:14px}
+th,td{text-align:left;vertical-align:top;padding:14px 10px;border-bottom:1px solid var(--rule)}
+th{font-weight:500;font-size:12px;color:var(--muted);letter-spacing:.06em;white-space:nowrap}
+td.work{font-family:var(--display);font-size:17px;font-weight:700;white-space:nowrap}
+td.work small{display:block;font-family:var(--body);font-weight:400;font-size:12px;color:var(--muted)}
+td.why{min-width:240px;color:var(--fg)}
+.dots{display:inline-flex;gap:3px}
+.dots i{width:8px;height:8px;border-radius:50%;border:1px solid var(--muted)}
+.dots i.on{background:var(--fg);border-color:var(--fg)}
+td.total{font-variant-numeric:tabular-nums;font-weight:700;font-size:16px}
+tr.pick td.work{color:var(--ai)}
+tr.pick td.total{color:var(--ai)}
+.pickmark{display:inline-block;font-family:var(--body);font-size:11px;font-weight:500;color:var(--bg);background:var(--ai);padding:0 6px;margin-left:6px;vertical-align:2px;border-radius:2px}
+.note{font-size:13px;color:var(--muted);margin-top:14px;max-width:46em}
+
+/* 企画書 */
+.pitches{display:grid;gap:56px}
+.pitch{display:grid;grid-template-columns:200px 1fr;gap:32px;border-top:1px solid var(--rule);padding-top:32px}
+.pitch aside{display:flex;flex-direction:column;gap:6px}
+.pitch .no{font-family:var(--display);font-size:13px;color:var(--muted);letter-spacing:.2em}
+.pitch .src{font-size:13px;color:var(--muted)}
+.pitch h3{font-size:34px;line-height:1.3}
+.pitch .tag{font-family:var(--display);font-size:18px;margin-top:6px;color:var(--ai)}
+.pitch .body{display:grid;gap:22px;min-width:0}
+.pitch .hook{font-family:var(--display);font-size:20px;line-height:1.7;padding-left:16px;border-left:3px solid var(--lemon)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:20px 32px}
+.item h4{margin:0 0 4px;font-size:13px;font-weight:700;letter-spacing:.08em;color:var(--muted)}
+.item p, .item li{font-size:14.5px}
+.item ul{margin:0;padding-left:1.2em}
+.sig{background:var(--surface);border:1px solid var(--rule);padding:18px 20px;display:grid;gap:6px}
+.sig h4{margin:0;font-size:13px;letter-spacing:.08em;color:var(--ai)}
+.sig p{font-size:15px}
+.clips{display:flex;flex-wrap:wrap;gap:8px}
+.clips span{font-size:13px;background:var(--surface);border:1px solid var(--rule);padding:4px 10px;border-radius:2px}
+.risk{font-size:13.5px;color:var(--muted)}
+.risk b{color:var(--blood);font-weight:500}
+
+/* 推奨 */
+.rec{display:grid;gap:14px;max-width:44em}
+.rec h2{font-size:28px}
+.rec ol{margin:0;padding-left:1.4em;display:grid;gap:8px}
+
+@media (max-width:760px){
+  .hero{grid-template-columns:auto 1fr;min-height:0}
+  .hero canvas{display:none}
+  .tate{font-size:32px}
+  .pitch{grid-template-columns:1fr;gap:16px}
+  .grid2{grid-template-columns:1fr}
+}
+@media (max-width:440px){
+  .hero{grid-template-columns:1fr}
+  .tate{writing-mode:horizontal-tb;border-left:0;padding-left:0;border-bottom:1px solid var(--rule);padding-bottom:12px}
+}
+</style>
+
+<div class="wrap">
+
+<header class="hero">
+  <h1 class="tate">近代文学を<br>遊ぶ<small>原作選定と企画三案</small></h1>
+  <div class="lead">
+    <span class="label">企画検討メモ · 2026年10月</span>
+    <p>日本の近代文学を原作に、その作品の空気が立ちのぼる3Dゲームをつくる。ノベルゲームにはしない。読んだことがある人には「あの場面だ」と分かり、読んだことがない人にも一枚の動画で伝わるものを狙います。</p>
+    <p>候補は、作者の没後に著作権が切れたパブリックドメイン作品に絞りました。日本では1967年までに亡くなった作者の作品が対象で、芥川・乱歩・梶井・賢治・中島敦はいずれも自由に翻案できます（本文は青空文庫で読めます）。</p>
+    <div class="criteria" aria-label="評価軸">
+      <span>世界観の独自性</span><span>3Dで動かす面白さ</span><span>知名度</span><span>切り抜き映え</span><span>小規模での実現性</span>
+    </div>
+  </div>
+  <canvas id="thread" aria-hidden="true"></canvas>
+</header>
+
+<section>
+  <div class="sec-head">
+    <span class="label">一 · 原作候補</span>
+    <h2>八作品を五つの軸で比べる</h2>
+    <p>各軸5点、合計25点。点数は企画者の見立てで、市場調査に基づく数値ではありません。</p>
+  </div>
+  <div class="tbl-wrap">
+  <table>
+    <thead><tr><th>作品</th><th>独自性</th><th>3D操作</th><th>知名度</th><th>切り抜き</th><th>実現性</th><th>計</th><th>ゲームにしたときの芯</th></tr></thead>
+    <tbody id="rows"></tbody>
+  </table>
+  </div>
+  <p class="note">※ 選外にした有力作：銀河鉄道の夜（映像化が多く新味を出しにくい）、羅生門（場面が一つで遊びが広がりにくい）、夢十夜（オムニバス向き。続編の素材として温存）。川端康成・三島由紀夫は保護期間中のため除外しました。</p>
+</section>
+
+<section>
+  <div class="sec-head">
+    <span class="label">二 · 企画</span>
+    <h2>有力三作の企画書</h2>
+    <p>どれも「原作のいちばん有名な瞬間を、プレイヤー自身の手で起こさせる」ことを軸にしています。</p>
+  </div>
+
+  <div class="pitches">
+
+  <article class="pitch">
+    <aside>
+      <span class="no">第一案</span>
+      <h3>糸</h3>
+      <span class="src">原作：芥川龍之介「蜘蛛の糸」（1918）</span>
+      <span class="tag">全員で一本の糸を登る、オンライン垂直登攀</span>
+    </aside>
+    <div class="body">
+      <p class="hook">極楽から垂れた一本の銀の糸。同じサーバーにいる全員が、その一本にぶら下がっている。</p>
+      <div class="grid2">
+        <div class="item"><h4>コアループ</h4><p>血の池から這い上がり、揺れる糸を手繰って登る。足場は針の山や浮かぶ亡者。落ちれば池からやり直し。Getting Over It や Only Up の系譜にある「登って、落ちて、また登る」遊びです。</p></div>
+        <div class="item"><h4>原作の主題をどう遊びにするか</h4><p>下から登ってくる他人を蹴落とせる。ただし誰かを蹴るたび、あるいは「これは俺の糸だ」と叫ぶ（ボイス／定型文）たびに、自分の手元の糸がほつれていく。利己的にふるまった瞬間に切れるのは、自分の上の糸です。</p></div>
+      </div>
+      <div class="sig"><h4>看板の3Dメカニクス</h4><p>糸は物理で動く一本のロープで、ぶら下がっている全員の重さと揺れを受けます。下に人が増えるほど糸は張り、大きく振られる。誰かが揺らせば全員が揺れる。この「共有された一本」が、配信や切り抜きの山場をつくります。</p></div>
+      <div class="grid2">
+        <div class="item"><h4>バズの仕掛け</h4>
+          <div class="clips"><span>100人が一斉に落ちる瞬間</span><span>あと一歩で糸が切れる</span><span>配信者 vs 視聴者の登攀戦</span><span>到達者だけが見る蓮池</span></div></div>
+        <div class="item"><h4>アートの方向</h4><p>地獄は墨と朱の水墨画調シェーダー、上へ行くほど色が抜けて白い光に溶ける。原作の一文が闇の中に縦書きで浮かび、登った高さに応じて続きが現れる。</p></div>
+      </div>
+      <div class="grid2">
+        <div class="item"><h4>規模の目安</h4><p>縦一本の大マップと、ロープ物理、ネットワーク同期。3〜5人で約12か月。最初に「ソロ＋ゴースト表示」版を出し、同期は後から足す段取りが現実的です。</p></div>
+        <div class="item"><h4>リスク</h4><p class="risk"><b>大人数のロープ物理同期が技術的な山。</b>荒らし対策（蹴落としの悪用）の設計も要ります。</p></div>
+      </div>
+    </div>
+  </article>
+
+  <article class="pitch">
+    <aside>
+      <span class="no">第二案</span>
+      <h3>人間椅子</h3>
+      <span class="src">原作：江戸川乱歩「人間椅子」（1925）</span>
+      <span class="tag">椅子の中に潜む、触覚と音の潜伏ゲーム</span>
+    </aside>
+    <div class="body">
+      <p class="hook">あなたは革張りの肘掛椅子の中にいる。今夜、あの人がここに座る。</p>
+      <div class="grid2">
+        <div class="item"><h4>コアループ</h4><p>昼は椅子の中で息を殺す。外は見えず、手がかりは音と振動と重みだけ。誰が座ったかを当て、咳やきしみで見つからないよう耐える。夜になると、椅子ごと屋敷の中を「歩いて」移動できる。</p></div>
+        <div class="item"><h4>原作の主題をどう遊びにするか</h4><p>覗き見の欲望と、見つかる恐怖。座られている時間が長いほど得られるもの（手紙の材料）が増えるが、発覚の危険も上がる。最後に自分の書いた手紙が届く場面で、原作のどんでん返しをプレイヤー自身に仕掛けます。</p></div>
+      </div>
+      <div class="sig"><h4>看板の3Dメカニクス</h4><p>椅子のまま動く物理移動。四本脚を左右のスティックで一本ずつ動かす、Octodad 型のぎこちない操作です。人の目がない隙に廊下を数メートル進み、足音が近づいたら元の家具のふりに戻る。不気味さと可笑しさが同時に出ます。</p></div>
+      <div class="grid2">
+        <div class="item"><h4>バズの仕掛け</h4>
+          <div class="clips"><span>配信者が「座られた」瞬間に絶叫</span><span>椅子が廊下をよちよち歩く</span><span>4対1の「人間家具かくれんぼ」モード</span></div></div>
+        <div class="item"><h4>アートの方向</h4><p>大正浪漫の洋館。ランプの橙と深い緑の壁紙、使い込んだ革の質感。視界はほぼ闇で、音の位置が光の粒として見える演出。章題は乱歩の装丁風活字で。</p></div>
+      </div>
+      <div class="grid2">
+        <div class="item"><h4>規模の目安</h4><p>屋敷一軒と数人のNPC。2〜4人で約9か月。対戦モードは追加要素にでき、本編はソロで成立します。</p></div>
+        <div class="item"><h4>リスク</h4><p class="risk"><b>題材の性的な含意の扱い。</b>表現はほのめかしに留め、ストア審査と年齢区分を早めに確認します。</p></div>
+      </div>
+    </div>
+  </article>
+
+  <article class="pitch">
+    <aside>
+      <span class="no">第三案</span>
+      <h3>檸檬</h3>
+      <span class="src">原作：梶井基次郎「檸檬」（1925）</span>
+      <span class="tag">丸善に画集の城を築く、物理積み上げ散歩</span>
+    </aside>
+    <div class="body">
+      <p class="hook">えたいの知れない不吉な塊が、心を始終おさえつけていた。</p>
+      <div class="grid2">
+        <div class="item"><h4>コアループ</h4><p>大正の京都・寺町をあてもなく歩き、八百屋で檸檬を一つ買う。丸善に入り、棚の画集を抜き出して積み上げ、色の城をつくる。頂に檸檬を据えて、何食わぬ顔で店を出る。</p></div>
+        <div class="item"><h4>原作の主題をどう遊びにするか</h4><p>画面の縁に広がる灰色の靄が「不吉な塊」。歩くほど、美しいものを見つけるほど靄が晴れる。店を出た瞬間、想像の中で丸善が檸檬色に爆ぜる。その数秒間がこのゲームのご褒美です。</p></div>
+      </div>
+      <div class="sig"><h4>看板の3Dメカニクス</h4><p>本一冊ごとに重さと装丁の色を持つ積み木物理。高く、危うく、美しく積むほど爆発の演出が派手になる。崩れれば店員に咎められ、やり直し。</p></div>
+      <div class="grid2">
+        <div class="item"><h4>バズの仕掛け</h4>
+          <div class="clips"><span>自作の「画集の城」をフォトモードで共有</span><span>日替わりお題の積み上げ</span><span>スローモーションの檸檬爆発</span></div></div>
+        <div class="item"><h4>アートの方向</h4><p>くすんだ灰青の町並みに、檸檬の黄だけが鮮やか。爆発の瞬間だけ画面の彩度が一気に上がる。静かなローファイの劇伴。</p></div>
+      </div>
+      <div class="grid2">
+        <div class="item"><h4>規模の目安</h4><p>通り一本と店二軒。1〜3人で約6か月。最小の座組で出せる案で、最初の一本としても手堅い。</p></div>
+        <div class="item"><h4>リスク</h4><p class="risk"><b>知名度は三案中で最も低く、尖りが静かです。</b>見た目の美しさとSNS共有の導線で補う必要があります。</p></div>
+      </div>
+    </div>
+  </article>
+
+  </div>
+</section>
+
+<section class="rec">
+  <span class="label">三 · 推奨</span>
+  <h2>第一案「糸」を本命に</h2>
+  <ol>
+    <li>知名度が最も高い。教科書で誰もが読んでいて、説明なしで「あの話だ」と伝わります。</li>
+    <li>「全員が一本の糸にぶら下がる」という一行で遊びが伝わり、配信と切り抜きに向いています。</li>
+    <li>原作の結末（自分だけ助かろうとして糸が切れる）を、プレイヤー自身の行動で再現できます。</li>
+  </ol>
+  <p>独自性で選ぶなら第二案「人間椅子」、小さく確実に一本出すなら第三案「檸檬」です。</p>
+</section>
+
+</div>
+
+<script>
+(() => {
+  const data = [
+    ["蜘蛛の糸","芥川龍之介 · 1918",[4,5,5,5,4],"一本の糸を大勢で登る。自分だけ助かろうとした瞬間に切れる。",true],
+    ["人間椅子","江戸川乱歩 · 1925",[5,4,4,5,4],"家具の中に潜む。音と重みだけで外界を知り、椅子のまま動く。",true],
+    ["檸檬","梶井基次郎 · 1925",[4,4,3,4,5],"丸善で画集を積み上げ、檸檬を置いて去る。想像の爆発がご褒美。",true],
+    ["注文の多い料理店","宮沢賢治 · 1924",[4,3,5,4,4],"扉の注文に従うほど食べられる側になる脱出もの。子どもも遊べる。",false],
+    ["山月記","中島敦 · 1942",[4,4,5,3,3],"虎になっていく。人間でいられる時間が減るほど操作が獣に変わる。",false],
+    ["押絵と旅する男","江戸川乱歩 · 1929",[5,4,2,3,4],"双眼鏡を逆さに覗くと縮む。縮尺を行き来するパズル。",false],
+    ["桜の森の満開の下","坂口安吾 · 1947",[5,3,2,4,3],"満開の桜の下を女を背負って歩く。美しさが恐怖に変わる散策。",false],
+    ["ドグラ・マグラ","夢野久作 · 1935",[5,3,3,4,2],"記憶のない男が精神病院を巡るループ。構造が複雑で規模が膨らむ。",false],
+  ];
+  const tb = document.getElementById("rows");
+  for (const [w,a,s,why,pick] of data) {
+    const tr = document.createElement("tr");
+    if (pick) tr.className = "pick";
+    const dots = n => `<span class="dots" aria-label="${n}点">${[1,2,3,4,5].map(i=>`<i class="${i<=n?"on":""}"></i>`).join("")}</span>`;
+    tr.innerHTML = `<td class="work">${w}${pick?'<span class="pickmark">企画化</span>':""}<small>${a}</small></td>` +
+      s.map(n=>`<td>${dots(n)}</td>`).join("") +
+      `<td class="total">${s.reduce((x,y)=>x+y,0)}</td><td class="why">${why}</td>`;
+    tb.appendChild(tr);
+  }
+
+  // 扉の右に揺れる一本の糸
+  const c = document.getElementById("thread");
+  const ctx = c.getContext("2d");
+  const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  function size(){ const r=c.getBoundingClientRect(); const d=devicePixelRatio||1; c.width=r.width*d; c.height=r.height*d; ctx.setTransform(d,0,0,d,0,0); }
+  size(); addEventListener("resize", size);
+  function draw(t){
+    const w=c.clientWidth, h=c.clientHeight; if(!w) return;
+    const cs=getComputedStyle(document.documentElement);
+    ctx.clearRect(0,0,w,h);
+    const sway=Math.sin(t/1400)*14;
+    ctx.strokeStyle=cs.getPropertyValue("--thread").trim(); ctx.lineWidth=1.2;
+    ctx.beginPath(); ctx.moveTo(w/2,0);
+    for(let y=0;y<=h*0.92;y+=4){ const k=y/h; ctx.lineTo(w/2+sway*k*k+Math.sin(y/40+t/900)*k*2,y); }
+    ctx.stroke();
+    const endY=h*0.92, endX=w/2+sway*0.85;
+    ctx.fillStyle=cs.getPropertyValue("--fg").trim();
+    ctx.beginPath(); ctx.arc(endX,endY,3.5,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle=cs.getPropertyValue("--lemon").trim();
+    ctx.beginPath(); ctx.arc(w/2,6,4,0,Math.PI*2); ctx.fill();
+  }
+  if (reduce) draw(0); else (function loop(t){ draw(t); requestAnimationFrame(loop); })(0);
+})();
+</script>

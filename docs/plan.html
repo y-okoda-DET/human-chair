@@ -1,0 +1,237 @@
+<title>人間椅子 企画書</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shippori+Mincho+B1:wght@500;700;800&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap">
+<style>
+/* Layout: 暗い洋館の中から見た企画書。暗色を基調に、ランプの橙だけが灯る。章は縦に並べ、各章の冒頭に大きな章番号 */
+:root{
+  --bg:#15120F;           /* 革の裏側 */
+  --surface:#1E1A16;
+  --fg:#E8DFCF;           /* 古い紙 */
+  --muted:#9C8F7C;
+  --rule:#3A312A;
+  --lamp:#E0953A;         /* ランプの橙 */
+  --green:#5F8C6A;        /* 壁紙の緑 */
+  --red:#B8463F;          /* 紅 */
+  --display:"Shippori Mincho B1","Hiragino Mincho ProN","Yu Mincho",serif;
+  --body:"Zen Kaku Gothic New","Hiragino Sans","Yu Gothic",system-ui,sans-serif;
+  color-scheme:dark;
+}
+@media (prefers-color-scheme: light){:root:not([data-theme="dark"]){
+  --bg:#F1ECE2;--surface:#FAF7F0;--fg:#221C16;--muted:#6B5F50;--rule:#D6CCBC;
+  --lamp:#B36A14;--green:#3F6B4A;--red:#9A2F2A;color-scheme:light}}
+:root[data-theme="light"]{
+  --bg:#F1ECE2;--surface:#FAF7F0;--fg:#221C16;--muted:#6B5F50;--rule:#D6CCBC;
+  --lamp:#B36A14;--green:#3F6B4A;--red:#9A2F2A;color-scheme:light}
+
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:15px;line-height:1.9}
+.wrap{max-width:960px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:48px 96px;display:grid;gap:80px}
+h1,h2,h3,h4{font-family:var(--display);text-wrap:balance;margin:0;font-weight:700}
+p{margin:0}
+ul,ol{margin:0;padding-left:1.3em}
+li{margin:2px 0}
+.label{font-size:12px;letter-spacing:.16em;color:var(--lamp)}
+
+/* 扉 */
+.hero{display:grid;gap:22px;max-width:40em}
+.hero h1{font-size:clamp(40px,8vw,72px);line-height:1.15;font-weight:800;letter-spacing:.04em}
+.hero .sub{font-family:var(--display);font-size:20px;color:var(--muted)}
+.hero .one{font-size:17px;padding:18px 22px;border:1px solid var(--rule);background:var(--surface)}
+.hero .one b{color:var(--lamp);font-weight:500}
+.meta{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:13px;color:var(--muted)}
+
+/* 章 */
+.ch{display:grid;grid-template-columns:120px 1fr;gap:32px}
+.ch > .num{font-family:var(--display);font-size:13px;letter-spacing:.2em;color:var(--muted);padding-top:10px}
+.ch > .num b{display:block;font-size:40px;font-weight:800;color:var(--fg);letter-spacing:0;line-height:1}
+.ch > .body{display:grid;gap:26px;min-width:0;max-width:40em}
+.ch h2{font-size:30px;line-height:1.35}
+.ch h3{font-size:18px;margin-top:6px}
+.ch h3::before{content:"";display:inline-block;width:10px;height:10px;background:var(--lamp);margin-right:10px;vertical-align:1px}
+.pillars{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;max-width:none}
+.pillar{background:var(--surface);border-top:2px solid var(--lamp);padding:16px 18px;display:grid;gap:8px;align-content:start}
+.pillar h4{font-size:17px}
+.pillar p{font-size:13.5px;color:var(--muted)}
+
+.loop{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;max-width:none}
+.phase{border:1px solid var(--rule);padding:16px 18px;display:grid;gap:8px;align-content:start}
+.phase .t{font-family:var(--display);font-size:20px}
+.phase .t small{display:block;font-family:var(--body);font-size:12px;color:var(--muted);letter-spacing:.1em}
+.phase p,.phase li{font-size:13.5px}
+
+.sig{background:var(--surface);border:1px solid var(--lamp);padding:22px 24px;display:grid;gap:10px}
+.sig h4{font-size:14px;letter-spacing:.1em;color:var(--lamp)}
+.sig p{font-size:15px}
+
+.tbl-wrap{overflow-x:auto;max-width:none}
+table{border-collapse:collapse;width:100%;min-width:640px;font-size:14px}
+th,td{text-align:left;vertical-align:top;padding:12px 10px;border-bottom:1px solid var(--rule)}
+th{font-size:12px;font-weight:500;color:var(--muted);letter-spacing:.08em;white-space:nowrap}
+td.k{font-family:var(--display);font-weight:700;white-space:nowrap}
+td.fear{color:var(--fg)}
+td.fear::before,td.laugh::before{font-size:11px;letter-spacing:.1em;display:block;color:var(--muted)}
+td.fear::before{content:"恐怖"}
+td.laugh::before{content:"滑稽"}
+
+.rooms{display:grid;gap:0;max-width:none;border-top:1px solid var(--rule)}
+.room{display:grid;grid-template-columns:56px 160px 1fr;gap:16px;padding:14px 0;border-bottom:1px solid var(--rule);align-items:start}
+.room .n{font-family:var(--display);font-size:24px;font-weight:800;color:var(--muted);line-height:1.2}
+.room .name{font-family:var(--display);font-size:17px;font-weight:700}
+.room .name small{display:block;font-family:var(--body);font-size:12px;font-weight:400;color:var(--muted)}
+.room p{font-size:13.5px}
+
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:20px 32px;max-width:none}
+.cols .item h4{font-size:13px;letter-spacing:.1em;color:var(--muted);margin-bottom:4px}
+.cols .item p,.cols .item li{font-size:14px}
+.ref{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;max-width:none}
+.ref div{border-left:2px solid var(--green);padding-left:14px;display:grid;gap:4px}
+.ref b{font-family:var(--display);font-size:16px;font-weight:700}
+.ref p{font-size:13.5px;color:var(--muted)}
+.clips{display:flex;flex-wrap:wrap;gap:8px}
+.clips span{font-size:13px;background:var(--surface);border:1px solid var(--rule);padding:4px 10px}
+.risk b{color:var(--red);font-weight:500}
+.ms{display:grid;gap:0;max-width:none;border-top:1px solid var(--rule)}
+.ms div{display:grid;grid-template-columns:90px 1fr;gap:16px;padding:12px 0;border-bottom:1px solid var(--rule);font-size:14px}
+.ms div b{font-family:var(--display);color:var(--lamp);font-weight:700}
+.rec ol{display:grid;gap:10px}
+.rec li b{color:var(--lamp);font-weight:500}
+
+@media (max-width:760px){
+  .ch{grid-template-columns:1fr;gap:12px}
+  .pillars,.loop,.ref{grid-template-columns:1fr}
+  .cols{grid-template-columns:1fr}
+  .room{grid-template-columns:40px 1fr}
+  .room p{grid-column:1/-1}
+}
+</style>
+
+<div class="wrap">
+
+<header class="hero">
+  <span class="label">企画書 · 第一稿 · 2026年10月</span>
+  <h1>人間椅子</h1>
+  <p class="sub">原作：江戸川乱歩「人間椅子」（1925）。触覚と音で世界を知る、潜伏と移動の3Dゲーム。</p>
+  <p class="one">あなたは革張りの肘掛椅子の中にいる。外は見えない。<b>重みと、体温と、音だけ</b>が世界のすべてだ。今夜、あの人がここに座る。</p>
+  <div class="meta"><span>ジャンル：一人称潜伏 × 物理移動</span><span>ソロ本編 3〜5時間</span><span>無料ブラウザゲーム（スマホ対応）</span><span>チーム 1〜3人</span></div>
+</header>
+
+<section class="ch">
+  <div class="num">第一章<b>柱</b></div>
+  <div class="body">
+    <h2>三本の柱</h2>
+    <div class="pillars">
+      <div class="pillar"><h4>見えない。だから触る</h4><p>カメラは椅子の内側。視界はほぼ闇。座った人の重み、体温、衣擦れ、呼吸が革を通して伝わり、それだけで誰かを知る。「触覚で世界を見る」のがこのゲームの発明です。</p></div>
+      <div class="pillar"><h4>気味悪さと笑いを同じ場面に</h4><p>怖い場面を別に用意するのではなく、一つの場面に両方を置く。息を殺す緊張のすぐ隣に、椅子がよちよち歩く可笑しさがある。シュヴァンクマイエルの流儀です。</p></div>
+      <div class="pillar"><h4>覗く者が覗かれる</h4><p>プレイヤーは覗き見る側として遊ぶ。最後に、自分が書いた手紙が自分に返ってくる。原作の結末を、プレイヤー自身の行為で再現します。</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="ch">
+  <div class="num">第二章<b>遊び</b></div>
+  <div class="body">
+    <h2>一日は三つの時間でできている</h2>
+    <div class="loop">
+      <div class="phase"><span class="t">昼<small>潜伏</small></span>
+        <p>人が来る。座る。耐える。</p>
+        <ul><li>重み・体温・音が革の内側に「形」として浮かぶ</li><li>呼吸は手動。トリガーを引いている間は息を止められるが、長く止めるほど心音が大きくなり、離した瞬間に大きく息が漏れる</li><li>体勢がずれると脚がきしむ。スティックで重心を微調整して音を消す</li><li>長く座られるほど「感触の断片」が溜まる。発覚の危険も上がる</li></ul></div>
+      <div class="phase"><span class="t">夜<small>移動</small></span>
+        <p>屋敷が寝静まる。椅子が歩き出す。</p>
+        <ul><li>四本の脚を左右スティックで一本ずつ動かす。ぎこちなく、重い</li><li>足音が近づいたら「家具のふり」。その場で固まり、持ち上げられてもじっと耐える</li><li>廊下を数メートル進むのに数分かかる。それがこのゲームのスリルと笑い</li><li>部屋を移すことで、翌日に座る人が変わる</li></ul></div>
+      <div class="phase"><span class="t">朝<small>手紙</small></span>
+        <p>集めた断片で手紙を書く。</p>
+        <ul><li>その日の感触の断片が、乱歩の文体で一文ずつ手紙に組み上がる</li><li>どの断片を入れるかはプレイヤーが選ぶ。選び方が結末の文面を変える</li><li>手紙は章の終わりに「投函」され、物語が進む</li></ul></div>
+    </div>
+    <div class="sig"><h4>看板の3Dメカニクス：触覚の可視化</h4><p>誰かが座ると、革の裏側から人体の圧力がゆっくり浮き上がる。腰の形、肘の位置、脚を組み替える動き。それが唯一の「映像」です。寝息のリズムで温度の色がにじみ、紙を繰る音は小さな光の粒として位置が見える。目を奪って触覚を与える、この一点がゲームの顔になります。</p></div>
+    <h3>恐怖と滑稽は、同じ場面に置く</h3>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>場面</th><th></th><th></th></tr></thead>
+      <tbody>
+        <tr><td class="k">はじめて座られる</td><td class="fear">重みが革を通して全身にかかる。息を止める。心音が画面を揺らす。</td><td class="laugh">座った客が椅子を褒め、「少し固いな」と言って座り直す。プレイヤーの腹の上で。</td></tr>
+        <tr><td class="k">廊下を渡る</td><td class="fear">足音が近づく。固まる。足元に灯りが落ちる。</td><td class="laugh">女中が「あら、この椅子こんな所に」と戸惑い、元の位置へ引きずっていく。</td></tr>
+        <tr><td class="k">夜会</td><td class="fear">次々と知らない人が座る。誰かが脚のきしみに気づく。</td><td class="laugh">酔った客が椅子の上で寝てしまい、朝まで動けない。</td></tr>
+        <tr><td class="k">持ち上げられる</td><td class="fear">運ばれる。どこへ行くか分からない。落とされたら終わり。</td><td class="laugh">運ぶ男二人が「重いな、この椅子」と言い合う。</td></tr>
+      </tbody>
+    </table></div>
+  </div>
+</section>
+
+<section class="ch">
+  <div class="num">第三章<b>屋敷</b></div>
+  <div class="body">
+    <h2>五つの章、五つの部屋</h2>
+    <p>序章は原作の通り、醜い椅子職人が自分で作った椅子の中に入るところから始まります。ホテルで腕を試し、外国人の手を経て、外交官夫人の屋敷へ運ばれる。章が進むほど座る人が絞られていき、最後は一人になります。</p>
+    <div class="rooms">
+      <div class="room"><span class="n">序</span><span class="name">工房<small>椅子を作る</small></span><p>椅子を組み、中に入り、蓋を閉める。操作の教習。外が見えなくなる瞬間を、ゆっくり見せる。</p></div>
+      <div class="room"><span class="n">一</span><span class="name">ホテルのロビー<small>多くの人</small></span><p>不特定多数が座る。重みと体温の読み方を学ぶ。誰が座ったかを当てる遊びが始まる。</p></div>
+      <div class="room"><span class="n">二</span><span class="name">夜会の広間<small>大勢</small></span><p>舞踏会の夜。座っては立つ客の連続。最も騒がしく、最も見つかりやすい。寺山的な見世物の客たち。</p></div>
+      <div class="room"><span class="n">三</span><span class="name">書斎<small>外交官</small></span><p>夜の移動が本格化する。廊下、階段、使用人の巡回。夫人の部屋へたどり着くことが目標になる。</p></div>
+      <div class="room"><span class="n">四</span><span class="name">夫人の部屋<small>ただ一人</small></span><p>一人の人物の一日を、椅子の中から知る。断片が最も濃くなる。手紙の文面がここで決まる。</p></div>
+      <div class="room"><span class="n">終</span><span class="name">手紙<small>覗かれる</small></span><p>視点が切り替わり、夫人として自分の手紙を読む。読み終えたあと、もう一通が届く。</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="ch">
+  <div class="num">第四章<b>見た目</b></div>
+  <div class="body">
+    <h2>幻想耽美の三つの系譜を重ねる</h2>
+    <div class="ref">
+      <div><b>シュヴァンクマイエル</b><p>触覚。革、肉、毛、木の実物質感。3Dモデルをあえて毎秒12コマで動かし、コマ撮りの硬さを出す。食べる・触る音の生々しさ。</p></div>
+      <div><b>寺山修司</b><p>見世物小屋の看板、白塗り、紅、蝋燭、天井桟敷。屋敷の客を「演目」として登場させる。章題は幟（のぼり）の筆文字。</p></div>
+      <div><b>大正の洋館</b><p>深緑の壁紙、ランプの橙、ビロード、真鍮。乱歩の装丁風活字。時代考証は雰囲気優先で、怖さより美しさを先に置く。</p></div>
+    </div>
+    <div class="cols">
+      <div class="item"><h4>カメラ</h4><p>昼は椅子内部の一人称。ほぼ闇で、触覚の可視化だけが見える。夜の移動は椅子の背後からの低いアングルの三人称。この切り替え自体が「出る」「潜む」のリズムになる。</p></div>
+      <div class="item"><h4>動き</h4><p>人物も椅子もコマ撮り風。モーションを12fpsに量子化し、指先や布だけ滑らかに動かすと、人形劇のような不気味さが出る。</p></div>
+      <div class="item"><h4>音</h4><p>音が主役。バイノーラルで定位を正確に。心音はプレイヤーの状態で速さが変わり、音楽の代わりになる。会話は遠くのくぐもった声で、革を通して聞こえる質感にする。</p></div>
+      <div class="item"><h4>文字</h4><p>原作の一文が、革の内側に縦書きで一行ずつ浮かぶ。読ませる量は最小限。ノベルゲームにはしない。</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="ch">
+  <div class="num">第五章<b>広がり</b></div>
+  <div class="body">
+    <h2>見た人が、自分も座られたくなる</h2>
+    <div class="clips"><span>結果画面の一文（「最重量：太った紳士（92kg）」）をそのまま貼れる</span><span>配信者が「座られた」瞬間に絶叫する</span><span>椅子が廊下をよちよち歩く</span><span>家具のふりで固まり、女中に運ばれる</span><span>手紙の文面が人によって違う</span><span>「あの人の重み」当てクイズ</span></div>
+    <div class="cols">
+      <div class="item"><h4>シニカルと馬鹿馬鹿しさ</h4><ul><li>怖がらせきらない。客は椅子を「少し固い」と評し、犬が乗ってきて、酔客は寝てしまう</li><li>見つかった時の結末は毎回違う一文（「椅子は古道具屋に二円で売られた」）。これが貼られる</li><li>手紙は真面目な乱歩文体で、中身がくだらない。その落差が笑いになる</li></ul></div>
+      <div class="item"><h4>公開後</h4><ul><li>「椅子が歩く」10秒動画を一本だけ出す。説明なし</li><li>日替わりの客（「今日は誰に座られるか」）で再訪の理由を作る</li><li>フォトモード：椅子の内側から見た圧力の形を画像に</li></ul></div>
+    </div>
+  </div>
+</section>
+
+<section class="ch">
+  <div class="num">第六章<b>作る</b></div>
+  <div class="body">
+    <h2>規模と段取り</h2>
+    <div class="cols">
+      <div class="item"><h4>技術</h4><p>ブラウザで動くWebGL（Three.js か素のWebGL2）。インストール不要でリンク一つで遊べるのが、広がりの最大の武器。革の質感とたわみはシェーダーで描き、音はWeb Audioで合成する。スマホは画面長押しで息を止め、画面の左右で重心を取る。</p></div>
+      <div class="item"><h4>チーム</h4><p>1〜3人。企画兼ディレクター（おおこだ）、実装と操作設計（Claude）、必要なら3Dアーティスト1。</p></div>
+      <div class="item"><h4>期間</h4><p>本編3〜5か月。一回の遊びは5〜10分に収め、何度も遊んで結果を共有する形にする。まず「座られる」だけの試作で手応えを確かめ、次に「椅子歩き」を足す。</p></div>
+      <div class="item"><h4>リスク</h4><p class="risk"><b>題材の性的含意。</b>表現はほのめかしに留め、年齢区分（CERO C相当）とストア審査を縦切りの段階で確認する。<b>操作ストレス。</b>椅子歩きは難しすぎると離脱される。歩く距離を短く、失敗を笑いで受ける。</p></div>
+    </div>
+    <div class="ms">
+      <div><b>0〜1か月</b><span>紙と簡易モデルで、触覚の可視化と呼吸操作だけのプロトタイプ。怖いか、を確かめる</span></div>
+      <div><b>1〜3か月</b><span>縦切り：夫人の部屋一室。座られる・歩く・手紙、の一日分</span></div>
+      <div><b>3〜4か月</b><span>10秒動画を公開し、反応を見る。ここで続けるか決める</span></div>
+      <div><b>4〜9か月</b><span>序章から終章まで。音と質感を詰める</span></div>
+      <div><b>9〜12か月</b><span>体験版、ストア審査、発売</span></div>
+    </div>
+  </div>
+</section>
+
+<section class="ch rec">
+  <div class="num">次<b>決</b></div>
+  <div class="body">
+    <h2>決めたいこと</h2>
+    <ol>
+      <li><b>出し先：</b>無料のブラウザゲーム、スマホ対応（決定）。</li>
+      <li><b>最初に作るもの：</b>「座られる」体験だけの試作（決定、試作第一号あり）。次は椅子歩きを足すか、座られる側を磨くかを、遊んだ感触で決める。</li>
+    </ol>
+  </div>
+</section>
+
+</div>
