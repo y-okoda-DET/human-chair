@@ -85,7 +85,7 @@ body.intro #ctl,body.intro #bal,body.intro #lung,body.intro #lunglabel,body.intr
     <h1 id="rh" style="font-size:clamp(28px,6vw,44px)"></h1>
     <img id="cardimg" alt="結果の画像">
     <div class="letter" id="letter"></div>
-    <div class="share"><button id="save">画像を残す</button><button id="copy">記録を写す</button><button id="again">もう一夜</button></div>
+    <div class="share"><button id="save">画像を残す</button><button id="copy">記録を写す</button><button id="retry" hidden>この夜から</button><button id="again">もう一度</button></div>
     <span id="toast"></span>
   </div>
 </div>
@@ -188,22 +188,52 @@ const PATTERNS={
   narrow:[[0.42,0.55,0.12,0.9],[0.58,0.55,0.12,0.9],[0.43,0.33,0.10,0.5],[0.57,0.33,0.10,0.5]],
   paws:[[0.45,0.6,0.05,0.9],[0.55,0.6,0.05,0.9],[0.45,0.45,0.05,0.8],[0.55,0.45,0.05,0.8]],
 };
-const SITTERS=[
-  {name:"太った紳士",kg:92,dur:28,fidget:0.35,listen:[9,19],pat:"wide",jit:0.03,
+const SITTERS={
+  gentleman:{name:"太った紳士",kg:92,dur:28,fidget:0.35,listen:[9,19],pat:"wide",jit:0.03,
    lines:[[2,"ふむ、些か固いな、この椅子は。"],[6,"（雑誌を繰る音がする）"],[13,"……妙に温かいではないか。"],[16,"気の迷いであろう。"],[23,"（雑誌で膝を打っている）"]],
    frag:"湿った羅紗の匂い。雑誌で膝を打つ癖。些か固い、と仰いました。"},
-  {name:"若い女中",kg:48,dur:17,fidget:0.6,listen:[7],pat:"narrow",jit:0.05,
+  maid:{name:"ホテルの女中",kg:48,dur:17,fidget:0.6,listen:[7],pat:"narrow",jit:0.05,
    lines:[[1,"ほんの少しだけ。誰も見てやしないもの。"],[4,"（小声の鼻歌）"],[11,"……今、何か動きやしなかった？"],[14,"（腰を浮かせ、思い直して、また沈めた）"]],
    frag:"石鹸の匂い。踵を浮かせて腰掛ける癖。鼻歌は三節目で絶えました。"},
-  {name:"屋敷の犬",kg:9,dur:13,fidget:1.4,listen:[5,9],pat:"paws",jit:0.09,dog:true,
+  drunk:{name:"酔った客",kg:78,dur:26,fidget:0.12,listen:[],pat:"wide",jit:0.02,snore:true,
+   lines:[[2,"はあ、良い椅子だ、これは。"],[7,"……。"],[12,"（寝息が聞こえる）"],[18,"（いびきに変った）"],[23,"（いびきは止まぬ）"]],
+   frag:"酒と煙草の匂い。寝息はやがて鼾となり、重みはただの重みとなりました。"},
+  merchant:{name:"異国の商人",kg:98,dur:22,fidget:0.45,listen:[8,16],pat:"wide",jit:0.03,
+   lines:[[1.5,"（異国の言葉で、何か笑っている）"],[5,"（葉巻の煙が、革に沁みて来る）"],[11,"……ヘン、ナ、椅子。アタタカイ。"],[14,"（膝を叩いて、大笑いした）"],[19,"（葉巻を、肘掛けで揉み消した）"]],
+   frag:"葉巻と香水の匂い。肘掛けで葉巻を揉み消されました。あれは、熱うございました。"},
+  dog:{name:"屋敷の犬",kg:9,dur:13,fidget:1.4,listen:[5,9],pat:"paws",jit:0.09,dog:true,
    lines:[[0.5,"（何やら小さな獣が飛び乗った）"],[3,"（しきりに嗅ぎ廻っている）"],[8,"（爪が革を掻く）"],[11,"（興が尽きたらしい）"]],
    frag:"濡れた鼻先。四つ足の小さな重み。革を二度ほど掻きました。"},
-  {name:"酔った客",kg:78,dur:30,fidget:0.12,listen:[],pat:"wide",jit:0.02,snore:true,
-   lines:[[2,"はあ、良い椅子だ、これは。"],[7,"……。"],[12,"（寝息が聞こえる）"],[20,"（いびきに変った）"],[26,"（いびきは止まぬ）"]],
-   frag:"酒と煙草の匂い。寝息はやがて鼾となり、重みはただの重みとなりました。"},
-  {name:"夫人",kg:52,dur:30,fidget:0.2,listen:[5,14,23],pat:"narrow",jit:0.02,
-   lines:[[2,"（本の頁を開く音）"],[9,"（頁を繰る手が、止まった）"],[17,"……。"],[21,"（頁が、また進み始めた）"],[27,"（本が閉じられた）"]],
-   frag:"白粉の匂い。頁の手が止まる度に、あの方はこちらへ耳を澄ませておいででした。"},
+  magician:{name:"白塗りの奇術師",kg:60,dur:20,fidget:0.9,listen:[4,10,15],pat:"narrow",jit:0.06,
+   lines:[[1,"皆様、これなる椅子に、種も仕掛けもございません。"],[3,"（客席が、どっと沸いた）"],[8,"（奇術師が、椅子の背を叩いて廻る）"],[13,"……おや。仕掛けが、ございましたかな。"],[17,"（客席は、また沸いた）"]],
+   frag:"白粉と汗の匂い。椅子の背を三度叩かれました。仕掛けがある、と、あの男だけが知っておりました。"},
+  geisha:{name:"芸妓",kg:44,dur:14,fidget:0.5,listen:[6],pat:"narrow",jit:0.04,
+   lines:[[1,"あら、温い。どなたか先に座ってらしたの？"],[5,"（三味線の音が、遠くで鳴っている）"],[10,"……ねえ、この椅子、息をしてやしない？"],[12,"（自分で言って、笑った）"]],
+   frag:"鬢付け油の匂い。椅子が息をしている、と、冗談に仰いました。"},
+  lady1:{name:"佳子夫人",kg:52,dur:26,fidget:0.2,listen:[5,14,21],pat:"narrow",jit:0.02,
+   lines:[[2,"（原稿用紙を、膝の上で揃える音）"],[8,"（ペンが、紙の上を走っている）"],[13,"（ペンが、止まった）"],[18,"（また、走り始めた）"],[24,"（原稿が、伏せられた）"]],
+   frag:"白粉の匂い。ペンが止まる度に、あの方はこちらへ耳を澄ませておいででした。"},
+  teamaid:{name:"屋敷の女中",kg:46,dur:12,fidget:0.4,listen:[6],pat:"narrow",jit:0.04,
+   lines:[[1,"奥様がお茶の間に、ちょいと。"],[4,"（盆を、肘掛けに置いた）"],[8,"……奥様の椅子、なんだか、怖いわ。"],[10,"（盆を取って、出て行った）"]],
+   frag:"焙じ茶の匂い。この椅子が怖い、と仰いました。勘の良い娘でございます。"},
+  lady2:{name:"佳子夫人",kg:52,dur:44,fidget:0.15,listen:[7,16,25,34],pat:"narrow",jit:0.02,final:true,
+   lines:[[2,"（手紙の封を切る音）"],[5,"……また、見知らぬ方からの原稿だわ。"],[11,"（頁を繰る）"],[20,"（頁を繰る手が、止まった）"],[23,"……『奥様、私は』……"],[30,"（息を呑む音）"],[38,"……まさか。"],[42,"（夫人は、跳ねるように立ち上がった）"]],
+   frag:"あの方は、私の手紙を、私の上で、お読みになりました。"},
+};
+const NIGHTS=[
+  {title:"第一夜",place:"ホテルのロビー",queue:["gentleman","maid","drunk"]},
+  {title:"第二夜",place:"夜会の広間",queue:["merchant","dog","magician","geisha"],
+   before:[["幾日かの後、ホテルは椅子を、競売に掛けたのでございます。",4.2],["買い手は、さる外交官の屋敷でございました。",3.8],["私は椅子ごと荷車に積まれ、揺られて参りました。",3.8,"cloth"]]},
+  {title:"第三夜",place:"奥様の書斎",queue:["lady1","teamaid","lady2"],
+   before:[["夜会が果てると、椅子は奥の書斎へと運ばれました。",4.0],["書斎の主は、うら若い奥様。名を、佳子と仰います。",4.4],["奥様。それが、あなたでございました。",3.8]]},
+];
+const ENDING=[
+  ["三夜を経て、私は一通の手紙を認めたのでございます。",4.2],
+  ["――佳子は、そこまで読んで、思わず椅子から立ち上がった。",4.6],
+  ["今の今まで、腰掛けていたのが、その椅子であった。",4.4],
+  ["その時、女中が、もう一通の手紙を持って来た。",4.0,"cloth"],
+  ["「先日お送り致しました拙稿、御一読下さいましたでしょうか。」",4.8],
+  ["「題は『人間椅子』と、付けたいと存じます。」",5.0],
 ];
 const EPITAPH=["椅子は翌朝、庭先で焼かれました。","椅子は古道具屋へ、二円で売られました。","夫人は一言も仰らず、別の椅子をお求めになりました。","警察は参りませんでした。醜い椅子職人の申し立てなど、誰一人信じなかったのでございます。"];
 
@@ -211,7 +241,7 @@ const EPITAPH=["椅子は翌朝、庭先で焼かれました。","椅子は古�
 const $=id=>document.getElementById(id);
 const sub=$("sub"), susBar=$("sus").firstElementChild, lungBar=$("lung").firstElementChild;
 let S;
-function reset(){ S={state:"title",t:0,q:0,queue:[],sitter:null,ts:0,blobs:[],targets:[],w:0,heat:0,lung:0,hold:false,gaspCd:0,drift:0,tilt:0,sus:0,creakCd:0,listen:null,lineIdx:0,spots:[],frags:[],seen:[],beat:0,pulse:0,dark:1,wait:0,steps:0,caught:false,done:false,fidgetT:0,log:{},whyT:0,listens:0}; }
+function reset(){ S={night:0,snap:null,state:"title",t:0,q:0,queue:[],sitter:null,ts:0,blobs:[],targets:[],w:0,heat:0,lung:0,hold:false,gaspCd:0,drift:0,tilt:0,sus:0,creakCd:0,listen:null,lineIdx:0,spots:[],frags:[],seen:[],beat:0,pulse:0,dark:1,wait:0,steps:0,caught:false,done:false,fidgetT:0,log:{},whyT:0,listens:0}; }
 reset();
 function say(t,dim){ sub.textContent=t; sub.classList.toggle("dim",!!dim); }
 function spot(x,y){ S.spots.push({x,y,l:1}); if(S.spots.length>6) S.spots.shift(); }
@@ -228,38 +258,47 @@ const INTRO=[
   ["蓋が、閉ざされた。",2.8,"thud"],
 ];
 let introTimer=null;
-function beginIntro(){ audioInit(); A.ctx.resume && A.ctx.resume(); reset(); S.state="intro"; S.dark=0.12; $("title").hidden=true; $("result").hidden=true; $("intro").hidden=false; document.body.classList.add("intro"); say("");
-  let i=0; const p=$("introp");
-  const show=()=>{ if(i>=INTRO.length){ endIntro(); return; } const [t,d,fx]=INTRO[i++]; p.classList.remove("on"); setTimeout(()=>{ p.textContent=t; p.classList.add("on"); },60);
+function playLines(lines,done,dark){ S.state="intro"; S.dark=dark??0.12; $("title").hidden=true; $("result").hidden=true; $("intro").hidden=false; document.body.classList.add("intro"); say("");
+  let i=0; const p=$("introp"); let ended=false;
+  const fin=()=>{ if(ended) return; ended=true; clearTimeout(introTimer); $("intro").hidden=true; document.body.classList.remove("intro"); S.dark=1; done(); };
+  const show=()=>{ if(i>=lines.length){ fin(); return; } const [t,d,fx]=lines[i++]; p.classList.remove("on"); setTimeout(()=>{ p.textContent=t; p.classList.add("on"); },60);
     if(fx==="saw") saw(); if(fx==="hammer") hammer(4); if(fx==="cloth"){ cloth(); spring(); } if(fx==="thud"){ sitThud(); S.dark=1; }
     introTimer=setTimeout(show,d*1000); };
   $("intro").onclick=()=>{ clearTimeout(introTimer); show(); };
+  $("skip").onclick=e=>{ e.stopPropagation(); fin(); };
   show(); }
-function endIntro(){ clearTimeout(introTimer); $("intro").hidden=true; document.body.classList.remove("intro"); S.dark=1; beginDay(); }
-function beginDay(){ S.state="wait"; S.wait=2.5; S.steps=0;
-  const third=Math.random()<0.5?SITTERS[2]:SITTERS[3];
-  S.queue=[SITTERS[0],SITTERS[1],third,SITTERS[4]]; say("蓋が、閉ざされた。",true); }
+function beginIntro(){ audioInit(); A.ctx.resume && A.ctx.resume(); reset(); playLines(INTRO,()=>beginNight(0,true)); }
+function beginNight(i,skipBefore){ const N=NIGHTS[i]; S.night=i; S.sus=0; S.heat=0;
+  S.snap={seen:S.seen.slice(),frags:S.frags.slice(),log:Object.assign({},S.log)};
+  const go=()=>playLines([[`${N.title}　${N.place}`,2.8]],()=>{ S.state="wait"; S.wait=2.5; S.steps=0; S.queue=N.queue.map(k=>SITTERS[k]); say("（闇の中で、待つ）",true); },0.05);
+  if(N.before&&!skipBefore) playLines(N.before,go); else go(); }
+function endNight(){ if(S.night+1<NIGHTS.length) beginNight(S.night+1); else playLines(ENDING,()=>finish(false),0.4); }
 function startGame(){ beginIntro(); }
-function restartGame(){ audioInit(); reset(); S.state="wait"; $("title").hidden=true; $("result").hidden=true; $("intro").hidden=true; beginDay(); }
-
+function restartGame(){ audioInit(); reset(); beginNight(0,true); }
+function retryNight(){ audioInit(); const n=S.night, snap=S.snap; reset(); S.seen=snap.seen; S.frags=snap.frags; S.log=snap.log; beginNight(n,true); }
 function beginSit(st){ S.sitter=st; S.ts=0; S.w=0; S.lineIdx=0; S.listen=null; S.fidgetT=0;
   S.targets=PATTERNS[st.pat].map(b=>b.slice()); S.blobs=S.targets.map(b=>[b[0],b[1],b[2],0]); sitThud(); if(!st.dog){ cloth(); spring(); } say(st.dog?"（何かが、ひらりと飛び乗った）":"（何者かが、どっかと腰を下ろした）"); }
 
-function endSit(){ S.frags.push(S.sitter.frag); S.seen.push(S.sitter); S.state="leave"; S.ts=0; say(S.sitter.dog?"（獣は降りて行った）":"（重みが、ふっと去った）",true); }
+function endSit(){ S.frags.push(S.sitter.frag); S.seen.push(S.sitter); if(S.sitter.final){ S.sitter=null; S.w=0; S.state="between"; sitThud(); endNight(); return; } S.state="leave"; S.ts=0; say(S.sitter.dog?"（獣は降りて行った）":"（重みが、ふっと去った）",true); }
 
 function finish(caught){ S.done=true; S.caught=caught; S.state="result";
-  const n=S.seen.length; const heavy=S.seen.slice().sort((a,b)=>b.kg-a.kg)[0];
-  $("rk").textContent=caught?"露見":"本日の記録";
+  const n=new Set(S.seen.map(x=>x.name)).size; const heavy=S.seen.slice().sort((a,b)=>b.kg-a.kg)[0];
+  const N=NIGHTS[S.night];
+  $("rk").textContent=caught?`露見　${N.title}・${N.place}`:"三夜の記録";
   S.epitaph=caught?EPITAPH[Math.floor(Math.random()*EPITAPH.length)]:"";
-  $("rh").textContent=caught?S.epitaph:`${n}人の重みを知りました。`;
+  $("rh").textContent=caught?S.epitaph:"題は『人間椅子』と、付けたいと存じます。";
   let html="";
-  const reasons=Object.entries(S.log).map(([k,v])=>`${k}が${["","一","二","三","四","五","六","七","八","九"][v]||v}度`).join("、");
+  const reasons=Object.entries(S.log).map(([k,v])=>`${k}が${kan(v)}度`).join("、");
   if(caught){ html+=`<p>${S.sitter?S.sitter.name:"何者か"}が立ち上がり、蓋を開けたのでございます。${reasons?`${reasons}。それで十分でした。`:""}</p>`; if(S.frags.length) html+=`<p>書きかけの手紙には、こう記してありました。</p>`; }
-  else { html+=`<p>奥様。私は本日、この椅子の胴の中で、${n}人の重みを知ったのでございます。</p>`; if(reasons) html+=`<p class="k">（${reasons}。それでも、気づかれはしませんでした。）</p>`; }
+  else { html+=`<p>奥様。私は三夜の間、この椅子の胴の中で、${n}人の重みを知ったのでございます。</p>`; if(reasons) html+=`<p class="k">（${reasons}。それでも、気づかれはしませんでした。）</p>`; }
   for(const [i,f] of S.frags.entries()) html+=`<p><b>${S.seen[i].name}</b>（${S.seen[i].kg}kg）。${f}</p>`;
   if(!caught) html+=`<p>追伸。この椅子は些か固い、と皆様が仰います。</p>`;
   $("letter").innerHTML=html;
-  S.share=`本日、椅子の胴の中で${n}人の重みを知りました。${heavy?`最も重き者：${heavy.name}（${heavy.kg}kg）。`:""}${caught?"露見いたしました。":"気づかれはしませんでした。"} #人間椅子`;
+  const hv=heavy?`最も重き者：${heavy.name}（${heavy.kg}kg）。`:"";
+  S.share=caught?`${N.title}、${N.place}にて露見。椅子の胴の中で${n}人の重みを知りました。${hv} #人間椅子`:`三夜を越え、椅子の胴の中で${n}人の重みを知りました。${hv}題は『人間椅子』と致したく。 #人間椅子`;
+  S.cardLead=caught?`${N.title}、${N.place}にて`:"三夜、椅子の胴の中で";
+  S.cardEnd=caught?null:"題は『人間椅子』と。";
+  $("retry").hidden=!caught||S.night===0; $("again").textContent=caught&&S.night>0?"初めから":"もう一度";
   $("toast").textContent=""; $("result").hidden=false;
   $("cardimg").removeAttribute("src"); S.cardBlob=null;
   drawCard(n,heavy,caught).catch(e=>console.error(e)); }
@@ -268,7 +307,7 @@ function finish(caught){ S.done=true; S.caught=caught; S.state="result";
 const KAN=["〇","一","二","三","四","五","六","七","八","九"];
 function kan(n){ if(n<10) return KAN[n]; let s=""; const h=Math.floor(n/100), t=Math.floor(n%100/10), o=n%10;
   if(h) s+=(h>1?KAN[h]:"")+"百"; if(t) s+=(t>1?KAN[t]:"")+"十"; if(o) s+=KAN[o]; return s; }
-const ROT="ー…―（）「」〜", SMALL="ぁぃぅぇぉっゃゅょァィゥェォッャュョ";
+const ROT="ー…―（）「」『』〜", SMALL="ぁぃぅぇぉっゃゅょァィゥェォッャュョ";
 function vtext(g,str,x,y,size,gap){ gap=gap??1.08; let cy=y;
   for(const ch of str){
     if(ch===" "){ cy+=size*0.5; continue; }
@@ -307,14 +346,14 @@ async function drawCard(n,heavy,caught){
   vtext(g,"江戸川乱歩より",W-112,214,30);
   // 本文の列（右から左）
   let x=W-380; const col=(s,size,color,w)=>{ g.fillStyle=color; g.font=`${w||500} ${size}px "Shippori Mincho B1","Hiragino Mincho ProN","Yu Mincho",serif`; vtext(g,s,x,200,size); x-=size*1.75; };
-  col("本日、椅子の胴の中で",44,"#E8DCC6");
+  col(S.cardLead||"本日、椅子の胴の中で",44,"#E8DCC6");
   col(`${kan(n)}人の重みを知りました。`,44,"#E8DCC6");
   x-=24;
   if(heavy){ col("最も重き者",34,"rgba(232,220,198,.6)"); col(`${heavy.name}　${kan(heavy.kg)}瓩`,52,"#D9913B",700); }
   x-=24;
   if(caught){ col("露見。",52,"#C24A40",700); const ep=S.epitaph||""; const parts=ep.length>18?[ep.slice(0,ep.indexOf("、")+1)||ep.slice(0,16),ep.slice((ep.indexOf("、")+1)||16)]:[ep];
     for(const p of parts) if(p) col(p,38,"#E8DCC6"); }
-  else col("気づかれはしませんでした。",44,"#E8DCC6");
+  else { col("気づかれはしませんでした。",44,"#E8DCC6"); if(S.cardEnd){ x-=24; col(S.cardEnd,48,"#D9913B",700); } }
   // 署名
   g.fillStyle="rgba(232,220,198,.5)"; g.font=`500 28px "Shippori Mincho B1","Hiragino Mincho ProN","Yu Mincho",serif`; g.textBaseline="alphabetic";
   g.fillText("#人間椅子",84,H-90);
@@ -328,7 +367,7 @@ function update(now){
   const sitting=S.state==="sit";
   if(S.state==="wait"){ S.wait-=dt; S.steps-=dt;
     if(S.steps<=0){ S.steps=0.55+Math.random()*0.2; step(Math.max(0,S.wait)); if(S.wait<2.2&&S.wait>0.4) say("（足音が、こちらへ近づいて来る）",true); }
-    if(S.wait<=0){ if(S.queue.length){ S.state="sit"; beginSit(S.queue.shift()); } else finish(false); } }
+    if(S.wait<=0){ if(S.queue.length){ S.state="sit"; beginSit(S.queue.shift()); } else { S.state="between"; endNight(); } } }
   if(sitting){ const st=S.sitter; S.ts+=dt; S.w=Math.min(1,S.w+dt*2.2); S.heat=Math.min(1,S.heat+dt*0.02);
     while(S.lineIdx<st.lines.length&&st.lines[S.lineIdx][0]<=S.ts){ const l=st.lines[S.lineIdx++][1]; say(l,l.startsWith("（")); if(!l.startsWith("（")&&l!=="……。") murmur(Math.min(9,Math.max(3,Math.round(l.length/3)))); if(l.includes("雑誌")||l.includes("頁")||l.includes("本")) { spot(0.5+Math.random()*0.2-0.1,0.78); rustle(); } if(st.snore&&l.includes("いびき")) thump(0.3); }
     if(!S.listen){ for(const lt of st.listen){ if(S.ts>=lt&&S.ts<lt+0.05){ S.listen={t:3.6,held:0,len:3.6}; S.listens++; bb.classList.add("cue");
@@ -361,9 +400,9 @@ function update(now){
   balI.style.left=((S.drift*0.5+0.5)*100)+"%"; balI.classList.toggle("warn",Math.abs(S.drift)>0.42);
   // suspicion
   S.sus=Math.max(0,S.sus-dt*(sitting?0.4:1.2));
-  if(S.sus>=99&&S.state!=="caught"&&S.state!=="result"){ const wasSit=S.state==="sit"; S.state="caught"; S.ts=0; S.listen=null; bb.classList.remove("cue");
+  if(S.sus>=99&&(S.state==="sit"||S.state==="wait"||S.state==="leave")){ const wasSit=S.state==="sit"; S.state="caught"; S.ts=0; S.listen=null; bb.classList.remove("cue");
     if(!wasSit){ S.sitter={name:"女中",kg:0,dog:false}; } say(S.sitter&&S.sitter.dog?"（獣は吠え止まぬ。誰かが来る）":(wasSit?"……誰か、居るのか。":"（女中が入って来て、椅子の前で足を止めた）")); }
-  window.__isu=()=>S; window.__fin=finish;
+  window.__isu=()=>S; window.__fin=finish; window.__dbg={SITTERS,NIGHTS};
   // heartbeat
   const bpm=58+S.lung*85+S.sus*0.5; S.beat-=dt; if(S.beat<=0){ S.beat=60/bpm; if(S.state!=="intro"&&S.state!=="title") thump(0.15+S.lung*0.5+S.sus*0.003); S.pulse=1; }
   S.pulse=Math.max(0,S.pulse-dt*4);
@@ -395,7 +434,7 @@ cv.addEventListener("pointerdown",e=>{ e.preventDefault(); S.hold=S.gaspCd<=0; $
 for(const ev of ["pointerup","pointercancel"]) cv.addEventListener(ev,()=>{ S.hold=false; $("bb").classList.remove("on"); });
 $("start").addEventListener("click",startGame);
 $("again").addEventListener("click",restartGame);
-$("skip").addEventListener("click",e=>{ e.stopPropagation(); endIntro(); });
+$("retry").addEventListener("click",retryNight);
 $("save").addEventListener("click",async()=>{ const b=S.cardBlob; if(!b){ $("toast").textContent="画像を描いております。少々お待ちを。"; return; }
   const file=new File([b],"ningen-isu.png",{type:"image/png"});
   try{ if(navigator.canShare&&navigator.canShare({files:[file]})){ await navigator.share({files:[file],text:S.share}); return; } }catch(e){ if(e&&e.name==="AbortError") return; }
