@@ -38,6 +38,7 @@ body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--mincho);ove
 @media (prefers-reduced-motion:reduce){#intro p{transition:none}}
 #skip{position:fixed;right:max(16px,env(safe-area-inset-right,0px));bottom:calc(16px + env(safe-area-inset-bottom,0px));font-size:12px;letter-spacing:.2em;color:var(--muted);background:none;border:0;font-family:var(--mincho);cursor:pointer;z-index:6}
 #skip:focus-visible{outline:2px solid var(--lamp)}
+body.intro #ctl,body.intro #bal,body.intro #lung,body.intro #lunglabel,body.intro #sus,body.intro #suslabel{visibility:hidden}
 .card{max-width:34em;display:grid;gap:18px;text-align:center}
 .card h1{font-size:clamp(40px,10vw,72px);margin:0;font-weight:700;letter-spacing:.1em}
 .card p{margin:0;line-height:1.9;font-size:15px}
@@ -224,14 +225,14 @@ const INTRO=[
   ["蓋が、閉ざされた。",2.8,"thud"],
 ];
 let introTimer=null;
-function beginIntro(){ audioInit(); A.ctx.resume && A.ctx.resume(); reset(); S.state="intro"; S.dark=0.12; $("title").hidden=true; $("result").hidden=true; $("intro").hidden=false; say("");
+function beginIntro(){ audioInit(); A.ctx.resume && A.ctx.resume(); reset(); S.state="intro"; S.dark=0.12; $("title").hidden=true; $("result").hidden=true; $("intro").hidden=false; document.body.classList.add("intro"); say("");
   let i=0; const p=$("introp");
   const show=()=>{ if(i>=INTRO.length){ endIntro(); return; } const [t,d,fx]=INTRO[i++]; p.classList.remove("on"); setTimeout(()=>{ p.textContent=t; p.classList.add("on"); },60);
     if(fx==="saw") saw(); if(fx==="hammer") hammer(4); if(fx==="cloth"){ cloth(); spring(); } if(fx==="thud"){ sitThud(); S.dark=1; }
     introTimer=setTimeout(show,d*1000); };
   $("intro").onclick=()=>{ clearTimeout(introTimer); show(); };
   show(); }
-function endIntro(){ clearTimeout(introTimer); $("intro").hidden=true; S.dark=1; beginDay(); }
+function endIntro(){ clearTimeout(introTimer); $("intro").hidden=true; document.body.classList.remove("intro"); S.dark=1; beginDay(); }
 function beginDay(){ S.state="wait"; S.wait=2.5; S.steps=0;
   const third=Math.random()<0.5?SITTERS[2]:SITTERS[3];
   S.queue=[SITTERS[0],SITTERS[1],third,SITTERS[4]]; say("蓋が、閉ざされた。",true); }
