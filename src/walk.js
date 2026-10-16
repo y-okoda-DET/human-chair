@@ -534,7 +534,12 @@ export function patrolUpdate(P,dt){ const T=R3.T;
     if(d<0.05){ P.wait=P.pause[0]+Math.random()*(P.pause[1]-P.pause[0]); if(P.i===P.route.length-1) P.dir=-1; if(P.i===0) P.dir=1; P.i+=P.dir;
       // 部屋を見回って引き返す女中は、廊下の先へ着くまで立ち止まらず、振り返りもしない
       if(P.leave&&P.dir===-1&&P.i>0) P.wait=0; }
-    else if(!block){ const s=Math.min(d,P.spd*dt); P.x+=dx/d*s; P.z+=dz/d*s; P.yaw=Math.atan2(dx,dz); P.tyaw=P.yaw;
+    else if(block){ // 道を塞ぐ椅子は、脇へよけて通り過ぎる（立ち往生しない）
+      const cr=ax*dz-az*dx, nx=-dz/d, nz=dx/d, free=(x,z)=>{ for(const [ox,oz] of [[0.22,0],[-0.22,0],[0,0.22],[0,-0.22]]){ const c=cellAt(x+ox,z+oz); if(c==="#") return false; for(const o of OBST) if(x+ox>o[0]&&x+ox<o[2]&&z+oz>o[1]&&z+oz<o[3]) return false; } return true; };
+      const st=P.spd*dt; let moved=false;
+      for(const sg of cr>0?[-1,1]:[1,-1]){ const x=P.x+nx*sg*st+dx/d*st*0.25, z=P.z+nz*sg*st+dz/d*st*0.25; if(free(x,z)){ P.x=x; P.z=z; moved=true; break; } }
+      if(moved){ P.yaw=Math.atan2(dx,dz); P.tyaw=P.yaw; } }
+    else { const s=Math.min(d,P.spd*dt); P.x+=dx/d*s; P.z+=dz/d*s; P.yaw=Math.atan2(dx,dz); P.tyaw=P.yaw;
       P.st-=dt; if(P.st<=0){ P.st=0.55/P.spd; const dd=Math.hypot(P.x-W.px,P.z-W.pz); if(dd<15){ const rx=-Math.cos(W.pyaw), rz=Math.sin(W.pyaw); stepAt(dd,((P.x-W.px)*rx+(P.z-W.pz)*rz)/Math.max(1,dd)); } } } }
   let da=((P.tyaw-P.lyaw)%(Math.PI*2)+Math.PI*3)%(Math.PI*2)-Math.PI; P.lyaw+=clamp(da,-dt*2.6,dt*2.6);
   // 姿は12コマで刻む
