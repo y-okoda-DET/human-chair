@@ -216,17 +216,19 @@ export function build3D(){
   const beamM=new T.MeshBasicMaterial({map:beamT,transparent:true,blending:T.AdditiveBlending,depthWrite:false,side:T.DoubleSide,opacity:0.16,color:0xb8c8ff});
   const velvet=pbr("carpet",1,{color:0x6a1018});
   const curtain=(w,h)=>{ const g=new T.PlaneGeometry(w,h,24,8), p=g.attributes.position; for(let i=0;i<p.count;i++){ const x=p.getX(i), y=p.getY(i); p.setZ(i,Math.sin(x/w*Math.PI*7)*0.045*(1.2-(y/h+0.5)*0.5)); } g.computeVertexNormals(); const m=new T.Mesh(g,velvet); m.castShadow=true; return m; };
-  const windowOn=(x,z,ry,w=1.0,h=2.0,y0=0.75)=>{ const o=new T.Group();
+  const windowOn=(x,z,ry,w=1.0,h=2.0,y0=0.75,fy=0,patchOn=true)=>{ const o=new T.Group();
     const gl=new T.Mesh(new T.PlaneGeometry(w,h),glassM); gl.position.set(0,y0+h/2,0.01); o.add(gl);
     for(const [bw,bh,bx,by] of [[w+0.16,0.1,0,y0-0.04],[w+0.16,0.1,0,y0+h+0.04],[0.08,h,-w/2-0.04,y0+h/2],[0.08,h,w/2+0.04,y0+h/2]]){ const b=new T.Mesh(new T.BoxGeometry(bw,bh,0.08),M.wood); b.position.set(bx,by,0.03); o.add(b); }
     for(const sd of [-1,1]){ const c=curtain(0.5,h+0.5); c.position.set(sd*(w/2+0.12),y0+(h+0.5)/2-0.05,0.09); o.add(c); }
     const val=new T.Mesh(new T.BoxGeometry(w+0.9,0.28,0.12),velvet); val.position.set(0,y0+h+0.3,0.08); o.add(val);
     // 床に落ちる窓の形の月光と、宙の光の筋
-    const patch=new T.Mesh(new T.PlaneGeometry(w*1.15,h*0.9),moonM); patch.rotation.x=-Math.PI/2; patch.position.set(0,0.008,h*0.5); patch.scale.y=1; o.add(patch);
-    const beam=new T.Mesh(new T.PlaneGeometry(w*1.1,Math.hypot(h*0.5,y0+h*0.6)),beamM); beam.position.set(0,(y0+h*0.6)/2,h*0.5/2); beam.rotation.x=-Math.atan2(h*0.5,y0+h*0.6); o.add(beam);
+    const patch=new T.Mesh(new T.PlaneGeometry(w*1.15,h*0.9),moonM); patch.rotation.x=-Math.PI/2; patch.position.set(0,0.008,h*0.5); patch.scale.y=1; if(patchOn) o.add(patch);
+    const beam=new T.Mesh(new T.PlaneGeometry(w*1.1,Math.hypot(h*0.5,y0+h*0.6)),beamM); beam.position.set(0,(y0+h*0.6)/2,h*0.5/2); beam.rotation.x=-Math.atan2(h*0.5,y0+h*0.6); if(patchOn) o.add(beam);
     const l=new T.PointLight(0x7f95d0,0.5*Math.PI,4.5,1.6); l.position.set(0,y0+h*0.5,0.6); o.add(l);
-    return wallObj(o,x,0,z,ry); };
+    return wallObj(o,x,fy,z,ry); };
   windowOn(2.3,6.98,Math.PI); windowOn(9.4,4.98,Math.PI,0.9,1.9); windowOn(13.6,4.98,Math.PI,0.9,1.9);
+  // 階段の広間の高窓（段の上なので床の月光は落とさない）と、二階の廊下の窓
+  windowOn(21.98,3.4,-Math.PI/2,0.9,2.2,1.4,0.6,false); windowOn(21.98,15.2,-Math.PI/2,0.9,1.9,0.8,3);
   // 暖炉：木の炉棚に真鍮の柵、揺れる火
   { const o=new T.Group(); const part=(w,h,d,x,y,z,m)=>{ const b=new T.Mesh(new T.BoxGeometry(w,h,d),m); b.position.set(x,y,z); b.castShadow=true; b.receiveShadow=true; o.add(b); return b; };
     part(1.5,0.1,0.42,0,1.2,0.2,M.wood); part(0.22,1.2,0.34,-0.6,0.6,0.17,M.wood); part(0.22,1.2,0.34,0.6,0.6,0.17,M.wood); part(1.0,0.22,0.3,0,1.04,0.15,M.wood);
@@ -242,7 +244,15 @@ export function build3D(){
   // 敷物：応接間の真ん中と、廊下の細長い絨毯
   const rugM=pbr("carpet",1,{color:0xb05050}); rugM.map=rugM.map.clone(); rugM.map.repeat.set(3,2); rugM.map.needsUpdate=true;
   { const r=new T.Mesh(new T.PlaneGeometry(3.4,2.6),rugM); r.rotation.x=-Math.PI/2; r.position.set(3.7,0.004,3.8); r.receiveShadow=true; scene.add(r);
-    const rn=new T.Mesh(new T.PlaneGeometry(8.4,1.0),rugM); rn.rotation.x=-Math.PI/2; rn.position.set(11.4,0.004,4.0); rn.receiveShadow=true; scene.add(rn); }
+    const rn=new T.Mesh(new T.PlaneGeometry(8.4,1.0),rugM); rn.rotation.x=-Math.PI/2; rn.position.set(11.4,0.004,4.0); rn.receiveShadow=true; scene.add(rn);
+    const rugB=rugM.clone(); rugB.color=new T.Color(0x6a3a5a);
+    const hr=new T.Mesh(new T.PlaneGeometry(3.0,3.6),rugB); hr.rotation.x=-Math.PI/2; hr.position.set(18.2,0.004,4.3); hr.receiveShadow=true; scene.add(hr);
+    const ur=new T.Mesh(new T.PlaneGeometry(1.1,8.6),rugM); ur.rotation.x=-Math.PI/2; ur.position.set(19.9,3.004,12.9); ur.receiveShadow=true; scene.add(ur); }
+  // 裏の通路：壁の釘に、女中の前掛けと黒い服が吊してある。人の抜け殻のように
+  { const clothM=c=>new T.MeshStandardMaterial({color:c,roughness:0.95,side:T.DoubleSide});
+    const hang=(z,c,w,h)=>{ const g=new T.PlaneGeometry(w,h,10,6), p=g.attributes.position; for(let i=0;i<p.count;i++){ const x=p.getX(i), y=p.getY(i); p.setZ(i,Math.sin(x/w*Math.PI*3)*0.03+(0.5-y/h)*0.05); p.setX(i,x*(1+(0.5-y/h)*0.35)); } g.computeVertexNormals();
+      const m=new T.Mesh(g,clothM(c)); m.position.set(2.93,1.85-h/2,z); m.rotation.y=-Math.PI/2; m.castShadow=true; scene.add(m); const k=new T.Mesh(new T.CylinderGeometry(0.012,0.012,0.08,6),M.brass); k.rotation.z=Math.PI/2; k.position.set(2.96,1.86,z); scene.add(k); };
+    hang(12.9,0x2c2430,0.42,1.25); hang(13.5,0xd8d0c2,0.34,0.72); hang(14.1,0x2c2430,0.4,1.2); }
   // 円卓の上の燭台と、廊下の突き当たりの鉢植え
   const candleM=new T.SpriteMaterial({map:tex(32,32,(g,w,h)=>{ const gr=g.createRadialGradient(16,18,0,16,16,16); gr.addColorStop(0,"rgba(255,235,190,1)"); gr.addColorStop(0.35,"rgba(255,170,80,.5)"); gr.addColorStop(1,"rgba(255,150,60,0)"); g.fillStyle=gr; g.fillRect(0,0,w,h); }),blending:T.AdditiveBlending,depthWrite:false});
   { const cand=new T.Group(); const st=new T.Mesh(new T.CylinderGeometry(0.02,0.07,0.32,12),M.brass); st.position.y=0.16; cand.add(st);
@@ -267,11 +277,11 @@ export function build3D(){
   const glowT=tex(64,64,(g,w,h)=>{ const gr=g.createRadialGradient(32,32,0,32,32,32); gr.addColorStop(0,"rgba(255,225,170,1)"); gr.addColorStop(0.1,"rgba(255,190,110,.55)"); gr.addColorStop(0.35,"rgba(255,160,70,.14)"); gr.addColorStop(1,"rgba(255,150,60,0)"); g.fillStyle=gr; g.fillRect(0,0,w,h); });
   const glowM=new T.SpriteMaterial({map:glowT,blending:T.AdditiveBlending,depthWrite:false,fog:true,opacity:0.35});
   const glow=(x,y,z,s)=>{ s*=0.45; const sp=new T.Sprite(glowM); sp.position.set(x,y,z); sp.scale.set(s,s,1); scene.add(sp); const b=new T.Mesh(new T.SphereGeometry(0.035,6,5),M.glowY); b.position.set(x,y,z); scene.add(b); return sp; };
-  const LIGHTS=[[3.5,2.7,3.6,0xffa860,1.1,8],[11.5,2.5,4,0xff9a50,0.9,7],[18.2,4.4,4.6,0xffb070,2.6,14],[20,5.4,12,0xffa860,1.0,9],[2.5,2.9,12.5,0xd8c8a0,0.6,6],[20,4.4,18.4,0xffc080,1.2,5],[2.7,2.2,10,0xffa060,0.7,5],[12,3.3,15.6,0xffa060,0.8,6]];
+  const LIGHTS=[[3.5,2.7,3.6,0xffa860,1.1,8],[11.5,2.5,4,0xff9a50,0.9,7],[18.2,4.4,4.6,0xffb070,2.6,14],[20,5.4,12,0xffa860,1.0,9],[2.5,2.9,12.5,0xd8c8a0,0.6,6],[20,4.4,18.4,0xffc080,1.2,5],[2.7,2.2,10,0xffa060,0.7,5],[12,3.3,15.6,0xffa060,0.8,6],[5.5,2.4,15.5,0xffa060,0.7,5]];
   // 場面ごとに一灯だけ影を落とす（全部に落とすと重い）
   const SHL={R:0,F:1,H:2,U:3,S:6,B:7}, LOBJ=LIGHTS.map(([x,y,z,c,i,d])=>{ const l=new T.PointLight(c,i*Math.PI,d,1.6); l.position.set(x,y,z); l.shadow.mapSize.set(512,512); l.shadow.bias=-0.004; l.shadow.radius=3; l.shadow.camera.near=0.1; scene.add(l); return l; });
   const shadowFor=id=>LOBJ.forEach((l,i)=>{ l.castShadow=SHL[id]===i; });
-  for(const [x,y,z,s] of [[4.4,2.1,6.92,0.7],[6.92,2.1,5.2,0.7],[10.2,2.1,4.94,0.6],[13.4,2.1,4.94,0.6],[21.92,2.2,4.5,0.7],[18.08,4.9,12.5,0.6],[21.92,4.9,15.5,0.6],[2.5,3.0,12.5,0.5],[2.94,2.2,10,0.5],[12,3.3,15.94,0.5]]) glow(x,y,z,s);
+  for(const [x,y,z,s] of [[4.4,2.1,6.92,0.7],[6.92,2.1,5.2,0.7],[10.2,2.1,4.94,0.6],[13.4,2.1,4.94,0.6],[21.92,2.2,4.5,0.7],[18.08,4.9,12.5,0.6],[21.92,4.9,15.5,0.6],[2.5,3.0,12.5,0.5],[2.94,2.2,10,0.5],[12,3.3,15.94,0.5],[5.5,2.2,15.94,0.5]]) glow(x,y,z,s);
   { const brass=M.brass||M.wood; const chand=(x,y,z,top,r)=>{ const ch=new T.Group(); for(let i=0;i<6;i++){ const a=i/6*Math.PI*2; const b=new T.Mesh(new T.SphereGeometry(0.04,6,5),M.glowY); b.position.set(Math.cos(a)*r,0.06,Math.sin(a)*r); ch.add(b); const cup=new T.Mesh(new T.CylinderGeometry(0.035,0.02,0.06,8),brass); cup.position.set(Math.cos(a)*r,0,Math.sin(a)*r); ch.add(cup); }
       const ring=new T.Mesh(new T.TorusGeometry(r,0.018,6,24),brass); ring.rotation.x=Math.PI/2; ch.add(ring); const bowl=new T.Mesh(new T.SphereGeometry(0.12,10,8,0,Math.PI*2,Math.PI/2,Math.PI/2),brass); bowl.position.y=-0.02; ch.add(bowl);
       for(let i=0;i<3;i++){ const a=i/3*Math.PI*2, arm=new T.Mesh(new T.CylinderGeometry(0.008,0.008,r*1.1,4),brass); arm.position.set(Math.cos(a)*r/2,0.12,Math.sin(a)*r/2); arm.rotation.set(Math.sin(a)*1.1,0,-Math.cos(a)*1.1); ch.add(arm); }
@@ -326,7 +336,20 @@ export function build3D(){
     put("clock",{x:6.76,y:1.25,z:1.7,ry:-Math.PI/2,h:0.32});
     put("frame2",{x:6.96,y:1.55,z:4.1,ry:-Math.PI/2,h:0.8,cast:false});
     put("frame1",{x:5.7,y:1.6,z:6.97,ry:Math.PI,h:0.6,cast:false});
-    put("side",{x:1.45,y:0,z:4.3,h:0.68}); OBST.push([1.25,4.1,1.65,4.5]); });
+    put("side",{x:1.45,y:0,z:4.3,h:0.68}); OBST.push([1.25,4.1,1.65,4.5]);
+    // 階段の広間
+    put("frame1",{x:19.2,y:1.55,z:7.96,ry:Math.PI,h:0.7,cast:false});
+    put("side",{x:19.3,y:0,z:7.6,h:0.72}); put("lamp",{x:19.3,y:0.72,z:7.6,h:0.42}); OBST.push([19.1,7.4,19.5,7.8]);
+    put("plant",{x:19.55,y:0,z:1.5,h:1.0}); OBST.push([19.25,1.2,19.85,1.8]);
+    // 二階の廊下：吊り灯、肖像の並び、小卓
+    put("lantern",{x:20,y:5.55,z:12,h:0.8,cast:false});
+    put("frame2",{x:21.96,y:4.3,z:9.2,ry:-Math.PI/2,h:0.85,cast:false});
+    put("frame1",{x:21.96,y:4.4,z:16.6,ry:-Math.PI/2,h:0.6,cast:false});
+    put("side",{x:18.3,y:3,z:13.6,h:0.72}); put("clock",{x:18.3,y:3.72,z:13.6,ry:Math.PI/2,h:0.26}); OBST.push([18.1,13.4,18.5,13.8]);
+    // 裏の通路と裏階段の額
+    put("frame1",{x:2.96,y:1.5,z:9.4,ry:-Math.PI/2,h:0.5,cast:false});
+    put("frame2",{x:11.2,y:floorAt(11.2,15.5)+1.5,z:15.96,ry:Math.PI,h:0.7,cast:false});
+    put("frame1",{x:14.8,y:floorAt(14.8,15.5)+1.6,z:15.96,ry:Math.PI,h:0.55,cast:false}); });
   R3={T,scene,ren,cam,me,M,post,key,FLICK,MOTES,shadowFor}; window.__R3=R3; W.built=true; walkResize(); }
 
 export function walkResize(){ if(R3){ R3.ren.setSize(innerWidth,innerHeight,false); R3.cam.aspect=innerWidth/innerHeight; R3.cam.updateProjectionMatrix(); R3.post.resize(); }
@@ -348,6 +371,8 @@ export function camFor(x,z){ const c=cellAt(x,z);
   if((c==="U"||c==="D")&&!(z>=15&&z<16&&x<18)) return oblique("U",20,3,clamp(z,10.5,17.2));
   if(c==="S"&&z<15) return oblique("S",3.2,0.3,clamp(z,8.5,14.5)+0.7,0.8);
   const cx=clamp(x,4,16.5); return oblique("B",cx+0.7,floorAt(cx,15.5)+0.3,16.2,0.8); }
+// 二階を覗く時は、手前に立ちはだかる階下の壁を切り落とす（模型の蓋を外すように）
+const CLIP={B:[new THREE.Plane(new THREE.Vector3(0,0,1),-15.02)],U:[new THREE.Plane(new THREE.Vector3(1,0,0),-17.95),new THREE.Plane(new THREE.Vector3(0,0,1),-7.95)]};
 // 指で示した向きへ、脚を交互に出してよちよち進む。強く押せば急ぎ足になり、椅子が鳴く
 export const stick={x:0,y:0,on:false};
 export function autoStep(wx,wz,rush){ if(S.state!=="walk"||W.arrived) return;
@@ -478,7 +503,7 @@ export function walkRender(dt){ const cam=R3.cam, T=R3.T; if(R3.syncWall) R3.syn
   const want=S.hold&&S.state==="walk"?1:0; W.inK+=(want-W.inK)*Math.min(1,dt*(want?2.6:5));
   // 画面は12コマで刻む：コマが替わる時だけ視点を動かし、描く
   const fr=Math.floor(S.t*12), tick=fr!==W.frame; W.frame=fr;
-  const cf=camFor(W.px,W.pz); if(!W.cam||cf.id!==W.camId){ R3.shadowFor&&R3.shadowFor(cf.id);
+  const cf=camFor(W.px,W.pz); if(!W.cam||cf.id!==W.camId){ R3.shadowFor&&R3.shadowFor(cf.id); R3.ren.clippingPlanes=CLIP[cf.id]||[];
     if(W.camId&&S.state==="walk"&&!W.arrived&&!W.noticeP&&!(CHECK&&CHECK.id===cf.id)){ CHECK={id:cf.id,x:W.x,z:W.z,yaw:W.yaw,pardon:W.pardon}; }
     W.camId=cf.id; W.cam={p:new T.Vector3(...cf.p),l:new T.Vector3(...cf.l)}; }
   else if(tick){ W.cam.p.lerp(new T.Vector3(...cf.p),0.25); W.cam.l.lerp(new T.Vector3(...cf.l),0.25); }

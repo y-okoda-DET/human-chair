@@ -9,5 +9,6 @@ import clock from "./models/props/mantel_clock_01.glb?inline";
 import frame1 from "./models/props/fancy_picture_frame_01.glb?inline";
 import frame2 from "./models/props/fancy_picture_frame_02.glb?inline";
 import gclock from "./models/props/vintage_grandfather_clock_01.glb?inline";
+import lantern from "./models/props/lantern_chandelier_01.glb?inline";
 import side from "./models/props/side_table_tall_01.glb?inline";
-export default {table,cand,chand,plant,cabinet,lamp,clock,frame1,frame2,side,gclock};
+export default {table,cand,chand,plant,cabinet,lamp,clock,frame1,frame2,side,gclock,lantern};
