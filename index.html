@@ -189,7 +189,7 @@ const PATTERNS={
   paws:[[0.45,0.6,0.05,0.9],[0.55,0.6,0.05,0.9],[0.45,0.45,0.05,0.8],[0.55,0.45,0.05,0.8]],
 };
 const SITTERS={
-  gentleman:{name:"太った紳士",kg:92,dur:28,fidget:0.35,listen:[9,19],pat:"wide",jit:0.03,
+  gentleman:{name:"太った紳士",kg:92,dur:22,fidget:0.3,listen:[8],pat:"wide",jit:0.03,
    lines:[[2,"ふむ、些か固いな、この椅子は。"],[6,"（雑誌を繰る音がする）"],[13,"……妙に温かいではないか。"],[16,"気の迷いであろう。"],[23,"（雑誌で膝を打っている）"]],
    frag:"湿った羅紗の匂い。雑誌で膝を打つ癖。些か固い、と仰いました。"},
   maid:{name:"ホテルの女中",kg:48,dur:17,fidget:0.6,listen:[7],pat:"narrow",jit:0.05,
@@ -221,7 +221,7 @@ const SITTERS={
    frag:"あの方は、私の手紙を、私の上で、お読みになりました。"},
 };
 const NIGHTS=[
-  {title:"第一夜",place:"ホテルのロビー",queue:["gentleman","maid","drunk"]},
+  {title:"第一夜",place:"ホテルのロビー",queue:["gentleman","maid"]},
   {title:"第二夜",place:"夜会の広間",queue:["merchant","dog","magician","geisha"],
    before:[["幾日かの後、ホテルは椅子を、競売に掛けたのでございます。",4.2],["買い手は、さる外交官の屋敷でございました。",3.8],["私は椅子ごと荷車に積まれ、揺られて参りました。",3.8,"cloth"]]},
   {title:"第三夜",place:"奥様の書斎",queue:["lady1","teamaid","lady2"],
@@ -246,7 +246,7 @@ reset();
 function say(t,dim){ sub.textContent=t; sub.classList.toggle("dim",!!dim); }
 function spot(x,y){ S.spots.push({x,y,l:1}); if(S.spots.length>6) S.spots.shift(); }
 const susEl=$("sus"), balI=$("bal").firstElementChild, bb=$("bb");
-function addSus(v,reason){ S.sus=Math.min(100,S.sus+v); if(reason){ S.log[reason]=(S.log[reason]||0)+1; susEl.classList.add("flash"); setTimeout(()=>susEl.classList.remove("flash"),600); } }
+function addSus(v,reason){ if(S.night===0) v=Math.round(v*0.6); S.sus=Math.min(100,S.sus+v); if(reason){ S.log[reason]=(S.log[reason]||0)+1; susEl.classList.add("flash"); setTimeout(()=>susEl.classList.remove("flash"),600); } }
 
 const INTRO=[
   ["私は、醜い男でございます。",3.6],
