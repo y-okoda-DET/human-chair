@@ -45,7 +45,7 @@ export const SPOTS=[
   {x:18.42,z:11.6,l:"飾り棚の陰に"},{x:21.58,z:12.1,l:"椅子の隣に"},{x:21.58,z:16.6,l:"花台の脇に"}];
 export const OBST=[]; // 家具の当たり [x0,z0,x1,z1]
 export const PATROLS=[
-  {route:[[19,4.4],[12,4],[7.6,4],[4.2,3.6]],spd:0.95,pause:[1.8,3.2],i:0},
+  {route:[[19,4.4],[12,4],[7.6,4],[4.2,3.6]],spd:0.95,pause:[1.8,3.2],i:0,leave:true},
   {route:[[2.5,7.6],[2.5,15.5],[9,15.5],[16.6,15.5],[19.6,15.5]],spd:1.25,pause:[0.8,1.6],i:3},
   {route:[[19.6,8.8],[20,13],[19.6,17.2]],spd:0.75,pause:[2.5,4],i:2}];
 export const W={on:false,built:false};
@@ -330,15 +330,9 @@ export function build3D(){
   R3={T,scene,ren,cam,me,M,post,key,FLICK,MOTES,shadowFor}; window.__R3=R3; W.built=true; walkResize(); }
 
 export function walkResize(){ if(R3){ R3.ren.setSize(innerWidth,innerHeight,false); R3.cam.aspect=innerWidth/innerHeight; R3.cam.updateProjectionMatrix(); R3.post.resize(); }
-  // 椅子の中：革の継ぎ目に開いた細い隙間
+  // 息を殺す間の暗がり：真ん中は透け、縁ほど濃い
   const d=Math.min(devicePixelRatio||1,2), w=innerWidth, h=innerHeight; seamEl.width=w*d; seamEl.height=h*d; const g=seamEl.getContext("2d"); g.setTransform(d,0,0,d,0,0);
-  g.clearRect(0,0,w,h); const lg=g.createRadialGradient(w/2,h*0.44,10,w/2,h*0.44,Math.max(w,h)*0.8); lg.addColorStop(0,"#2a140c"); lg.addColorStop(1,"#050302"); g.fillStyle=lg; g.fillRect(0,0,w,h);
-  for(let i=0;i<900;i++){ g.strokeStyle=`rgba(${Math.random()<0.5?0:90},${Math.random()<0.5?0:50},0,${Math.random()*0.07})`; g.lineWidth=1; const x=Math.random()*w,y=Math.random()*h; g.beginPath(); g.moveTo(x,y); g.lineTo(x+Math.random()*16-8,y+Math.random()*16-8); g.stroke(); }
-  const cy=h*0.44, sw=Math.min(w*0.9,640), sh=Math.max(34,h*0.1);
-  const slit=k=>{ g.beginPath(); g.moveTo(w/2-sw/2*k,cy); g.quadraticCurveTo(w/2,cy-sh*k,w/2+sw/2*k,cy); g.quadraticCurveTo(w/2,cy+sh*0.8*k,w/2-sw/2*k,cy); };
-  g.save(); g.globalCompositeOperation="destination-out"; for(const [k,a] of [[1.08,0.25],[1.0,0.35],[0.9,0.5],[0.78,0.8],[0.6,1]]){ g.fillStyle=`rgba(0,0,0,${a})`; slit(k); g.fill(); } g.restore();
-  g.strokeStyle="rgba(150,110,70,.3)"; g.lineWidth=2; g.setLineDash([7,9]);
-  for(const s of [-1,1]){ g.beginPath(); g.moveTo(w/2-sw/2-12,cy+s*4); g.quadraticCurveTo(w/2,cy+s*(s<0?sh+12:sh*0.8+12),w/2+sw/2+12,cy+s*4); g.stroke(); } g.setLineDash([]); }
+  g.clearRect(0,0,w,h); const lg=g.createRadialGradient(w/2,h*0.45,Math.min(w,h)*0.22,w/2,h*0.45,Math.hypot(w,h)*0.55); lg.addColorStop(0,"rgba(8,4,2,0)"); lg.addColorStop(0.55,"rgba(8,4,2,.55)"); lg.addColorStop(1,"rgba(4,2,1,.95)"); g.fillStyle=lg; g.fillRect(0,0,w,h); }
 addEventListener("resize",()=>{ if(W.on) walkResize(); });
 export const BTN={bl:$("bl").innerHTML,bb:$("bb").innerHTML,br:$("br").innerHTML};
 // 定点の視点：斜め上から箱庭を覗く。どこでも同じ向きから覗くので、指の向きが入れ替わらない。
@@ -393,14 +387,14 @@ export function hideWalk(){ if(!W.on&&wc.hidden) return; W.on=false; if(W.clock)
   $("bl").innerHTML=BTN.bl; $("bb").innerHTML=BTN.bb; $("br").innerHTML=BTN.br; bb.classList.remove("cue"); }
 export function legThud(){ thump(0.25); woodKnock(0.4); W.nStep=(W.nStep||0)+1; if(W.nStep%3===0) leatherSquish(0.1,0.4); }
 // 寄りの差し込み：ここぞという一瞬だけ、椅子の脚や革に寄る
-export function insert(kind,dur){ W.insK=kind; W.insT=dur; W.insD=dur; }
+export function insert(kind,dur){} // 寄りの差し込みは止めた（定点から覗くだけにする）
 export function stepAt(dist,pan){ if(play(Math.random()<0.5?"maidstep1":"maidstep2",1.1/(1+dist*0.45),0.9+Math.random()*0.15,pan)) return; const c=A.ctx; if(!c) return; const s=c.createBufferSource(); s.buffer=A.brown; const f=c.createBiquadFilter(); f.type="lowpass"; f.frequency.value=380;
   const g=c.createGain(); g.gain.setValueAtTime(0.7/(1+dist*0.55),c.currentTime); g.gain.exponentialRampToValueAtTime(0.001,c.currentTime+0.1); s.connect(f).connect(g);
   if(c.createStereoPanner){ const p=c.createStereoPanner(); p.pan.value=clamp(pan,-1,1); g.connect(p).connect(A.master); } else g.connect(A.master); s.start(); s.stop(c.currentTime+0.15); }
 export function canStand(x,z,y0){ for(const [ox,oz] of [[0.27,0.27],[-0.27,0.27],[0.27,-0.27],[-0.27,-0.27],[0,0]]){ const px=x+ox,pz=z+oz, c=cellAt(px,pz); if(c==="#") return false; if(Math.abs(floorOf(c,px,pz)-y0)>0.4) return false;
     for(const o of OBST) if(px>o[0]&&px<o[2]&&pz>o[1]&&pz<o[3]) return false; } return true; }
 export function inPlace(){ for(const s of SPOTS) if(Math.hypot(s.x-W.x,s.z-W.z)<0.62) return s; return null; }
-export function heard(){ for(const P of PATROLS){ const d=Math.hypot(P.x-W.x,P.z-W.z); if(d<6.5&&Math.abs(floorAt(P.x,P.z)-floorAt(W.x,W.z))<2) P.alert={x:W.x,z:W.z,t:2.6}; } }
+export function heard(){ for(const P of PATROLS){ if(P.leave&&P.dir===-1) continue; const d=Math.hypot(P.x-W.x,P.z-W.z); if(d<6.5&&Math.abs(floorAt(P.x,P.z)-floorAt(W.x,W.z))<2) P.alert={x:W.x,z:W.z,t:2.6}; } }
 export function walkStep(side){ if(S.state!=="walk"||W.arrived) return; if(S.hold) return;
   const now=S.t; W.moveT=now; W.idle=0;
   if(now-W.lastT<0.22){ W.wob=Math.min(1.2,W.wob+0.5); creak(); heard(); W.lastT=now; W.last=side; return; }
@@ -418,10 +412,12 @@ export function seesChair(P){ const d=Math.hypot(W.px-P.x,W.pz-P.z); if(d>8.5) r
 export function walkCaught(P,line){ S.state="caught"; S.ts=0; bb.classList.remove("cue"); S.sitter={name:"屋敷の女中",kg:0,dog:false}; W.povP=P; W.povT=99; creak(); noiseBurst(A.white,0.4,0.25,"highpass",3000,1); say(line); }
 export function patrolUpdate(P,dt){ const T=R3.T;
   if(P.alert){ P.alert.t-=dt; const a=Math.atan2(P.alert.x-P.x,P.alert.z-P.z); P.tyaw=a; if(P.alert.t<=0) P.alert=null; }
-  else if(P.wait>0){ P.wait-=dt; P.tyaw=P.yaw+Math.sin(S.t*1.3)*0.7; }
+  else if(P.wait>0){ P.wait-=dt; P.tyaw=P.yaw+(P.leave&&P.dir===-1&&P.i>0?0:Math.sin(S.t*1.3)*0.7); }
   else { const [tx,tz]=P.route[P.i], dx=tx-P.x, dz=tz-P.z, d=Math.hypot(dx,dz);
     const ax=W.px-P.x, az=W.pz-P.z, along=(ax*dx+az*dz)/d, side=Math.abs(ax*dz-az*dx)/d, block=along>0&&along<0.9&&side<0.5;
-    if(d<0.05){ P.wait=P.pause[0]+Math.random()*(P.pause[1]-P.pause[0]); if(P.i===P.route.length-1) P.dir=-1; if(P.i===0) P.dir=1; P.i+=P.dir; }
+    if(d<0.05){ P.wait=P.pause[0]+Math.random()*(P.pause[1]-P.pause[0]); if(P.i===P.route.length-1) P.dir=-1; if(P.i===0) P.dir=1; P.i+=P.dir;
+      // 部屋を見回って引き返す女中は、廊下の先へ着くまで立ち止まらず、振り返りもしない
+      if(P.leave&&P.dir===-1&&P.i>0) P.wait=0; }
     else if(!block){ const s=Math.min(d,P.spd*dt); P.x+=dx/d*s; P.z+=dz/d*s; P.yaw=Math.atan2(dx,dz); P.tyaw=P.yaw;
       P.st-=dt; if(P.st<=0){ P.st=0.55/P.spd; const dd=Math.hypot(P.x-W.px,P.z-W.pz); if(dd<15){ const rx=-Math.cos(W.pyaw), rz=Math.sin(W.pyaw); stepAt(dd,((P.x-W.px)*rx+(P.z-W.pz)*rz)/Math.max(1,dd)); } } } }
   let da=((P.tyaw-P.lyaw)%(Math.PI*2)+Math.PI*3)%(Math.PI*2)-Math.PI; P.lyaw+=clamp(da,-dt*2.6,dt*2.6);
@@ -454,14 +450,14 @@ export function walkUpdate(dt){
     // 置き場の外でも、動かずにいれば二度までは見逃される。三度目からは立ち止まって見咎める
     // 一度見逃されたら、その灯りから外れるまでは同じ見逃しが続く
     if(lit) W.pardonCd=1; if(W.pardonCd<=0) W.pardonLit=false;
-    if(lit&&!spot&&!moving&&!W.noticeP&&!W.pardonLit&&W.pardon<PARDON){ W.pardon++; W.pardonLit=true; W.litPass=0; W.povCd=Math.max(W.povCd,14); W.povP=lit; W.povT=1.7;
+    if(lit&&!spot&&!moving&&!W.noticeP&&!W.pardonLit&&W.pardon<PARDON){ W.pardon++; W.pardonLit=true; W.litPass=0; W.povCd=Math.max(W.povCd,14);
       say(W.pardon===1?"……あら、こんな所に椅子が。":"……また、椅子。誰が動かすのかしら。"); leatherSquish(0.2,0.5); }
     const odd=moving||(!spot&&!W.pardonLit);
     if(lit&&odd){ if(!W.noticeP){ W.noticeP=lit; say("あら……？"); thump(0.7); leatherSquish(0.4,0.9); insert("back",0.75); }
       W.notice+=dt; if(W.notice>NOTICE){ walkCaught(W.noticeP,moving?"……椅子が、歩いている。":"……こんな所に、椅子なんて。"); return; } }
     else if(W.noticeP){ W.notice-=dt*0.8; if(W.notice<=0){ const P=W.noticeP; W.notice=0; W.noticeP=null; P.alert=null; W.litPass=0;
-        if(lit){ W.povCd=14; W.povP=P; W.povT=1.7; } say("……気のせいね。"); } }
-    else if(lit){ W.litPass+=dt; if(W.litPass>0.9&&W.povCd<=0){ W.litPass=0; W.povCd=14; W.povP=lit; W.povT=1.7; say(["……ただの椅子ね。","（灯りが、椅子の上を素通りした）","この屋敷の椅子は、どれも陰気だこと。"][Math.floor(Math.random()*3)]); } }
+        if(lit){ W.povCd=14; } say("……気のせいね。"); } }
+    else if(lit){ W.litPass+=dt; if(W.litPass>0.9&&W.povCd<=0){ W.litPass=0; W.povCd=14; say(["……ただの椅子ね。","（灯りが、椅子の上を素通りした）","この屋敷の椅子は、どれも陰気だこと。"][Math.floor(Math.random()*3)]); } }
     else W.litPass=Math.max(0,W.litPass-dt*0.5);
     // 立ち止まった女中は、灯りを椅子へ向けたまま動かない
     if(W.noticeP) W.noticeP.alert={x:W.px,z:W.pz,t:0.5};
@@ -497,7 +493,7 @@ export function walkRender(dt){ const cam=R3.cam, T=R3.T; if(R3.syncWall) R3.syn
     seamEl.style.opacity=0; cam.updateProjectionMatrix(); R3.me.visible=true; R3.post.render(dt,S.t,tick||STEP12===false); return; }
   R3.key.intensity=0;
   if(W.povT>0&&W.povP){ W.povT-=dt; const P=W.povP, y=floorAt(P.x,P.z); cam.position.set(P.x+Math.sin(P.lyaw)*0.1,y+1.5,P.z+Math.cos(P.lyaw)*0.1); cam.lookAt(W.px,fy+0.55,W.pz); cam.fov=42; seamEl.style.opacity=0; }
-  else if(e<0.5){ cam.position.copy(W.cam.p); cam.lookAt(W.cam.l); cam.fov=50; seamEl.style.opacity=String(clamp(e*4,0,1)); }
-  else { cam.position.copy(ins); cam.lookAt(insL); cam.fov=46; seamEl.style.opacity="1"; }
-  cam.updateProjectionMatrix(); R3.me.visible=e<0.5||W.povT>0; R3.post.render(dt,S.t,tick||STEP12===false); }
+  // 息を殺しても視点は変えない。四隅から暗がりが寄ってくるだけ
+  else { cam.position.copy(W.cam.p); cam.lookAt(W.cam.l); cam.fov=50; seamEl.style.opacity=String(e*0.9); }
+  cam.updateProjectionMatrix(); R3.me.visible=true; R3.post.render(dt,S.t,tick||STEP12===false); }
 const STEP12=new URLSearchParams(location.search).get("koma")==="0"?false:true;
