@@ -473,6 +473,9 @@ export const NOTICE=1.3; // 女中が立ち止まってから、見咎めるま�
 // 続きから：場面（視点）が変わるたびに、そこを覚えておく。露見したら、ここから歩き直せる
 export let CHECK=null;
 export function clearCheck(){ CHECK=null; }
+// 場面が替わった時と、置き場に収まった時に覚える
+function saveCheck(id,x,z){ if(S.state!=="walk"||W.arrived||W.noticeP||(CHECK&&CHECK.id===id)) return;
+  CHECK={id,x,z,yaw:W.yaw,pardon:W.pardon,pats:PATROLS.map(P=>({x:P.x,z:P.z,i:P.i,dir:P.dir,wait:P.wait,yaw:P.yaw,lyaw:P.lyaw,tyaw:P.tyaw}))}; }
 PATROLS.forEach(P=>{ P.i0=P.i; });
 // 場面に入るたび、場所の名を縦の活字で掲げ、奥様への手紙の一節を綴る
 const PLACE={R:["応接間","奥様。夜会の果てた応接間に、私と同じ形の椅子が、何脚も、行儀よく並んでおりました。"],
@@ -590,6 +593,7 @@ export function walkUpdate(dt){
     if(W.noticeP) W.noticeP.alert={x:W.px,z:W.pz,t:0.5};
     const cue=!!lit||near||!!W.noticeP; if(cue!==W.cue){ W.cue=cue; bb.classList.toggle("cue",cue); if(cue&&!W.said.near){ W.said.near=1; say("（灯りが、こちらへ来る）"); } } }
   // 置き場所に身を寄せた時だけ、ひと言
+  if(S.state==="walk"&&W.idle>0.6){ const s=inPlace(); if(s) saveCheck("spot"+SPOTS.indexOf(s),s.x,s.z); }
   if(S.state==="walk"&&W.idle>1.2){ const s=inPlace(); if(s&&s.l&&!W.said[s.l+s.x]){ W.said[s.l+s.x]=1; say(`（${s.l}、身を寄せた）`,true); } }
   // 書斎が近づくほど、ペンの音が聞こえ、匂いが降り、独白が熱を帯びる（胸の鼓動も早まる）
   if(S.state==="walk"&&!W.arrived){ const dd=Math.hypot(W.x-STUDY.x,W.z-STUDY.z); S.near=clamp((16-dd)/12,0,1);
@@ -611,7 +615,7 @@ export function walkRender(dt){ const cam=R3.cam, T=R3.T; if(R3.syncWall) R3.syn
   const fr=Math.floor(S.t*12), tick=fr!==W.frame; W.frame=fr;
   const cf=camFor(W.px,W.pz); if(!W.cam||cf.id!==W.camId){ R3.shadowFor&&R3.shadowFor(cf.id); R3.ren.clippingPlanes=CLIP[cf.id]||[];
     if(S.state==="walk"&&!W.seen[cf.id]){ W.seen[cf.id]=1; placeCard(cf.id); }
-    if(W.camId&&S.state==="walk"&&!W.arrived&&!W.noticeP&&!(CHECK&&CHECK.id===cf.id)){ CHECK={id:cf.id,x:W.x,z:W.z,yaw:W.yaw,pardon:W.pardon,pats:PATROLS.map(P=>({x:P.x,z:P.z,i:P.i,dir:P.dir,wait:P.wait,yaw:P.yaw,lyaw:P.lyaw,tyaw:P.tyaw}))}; }
+    if(W.camId) saveCheck(cf.id,W.x,W.z); 
     W.camId=cf.id; W.cam={p:new T.Vector3(...cf.p),l:new T.Vector3(...cf.l)}; }
   else if(tick){ W.cam.p.lerp(new T.Vector3(...cf.p),0.25); W.cam.l.lerp(new T.Vector3(...cf.l),0.25); }
   W.camYaw=Math.atan2(W.cam.l.x-W.cam.p.x,W.cam.l.z-W.cam.p.z);
