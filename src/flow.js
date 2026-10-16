@@ -1,4 +1,4 @@
-import { A, audioInit, cloth, creak, hammer, saw, sitThud, spring } from "./audio.js";
+import { A, audioInit, cloth, creak, hammer, pen, saw, scrape, sitThud, spring } from "./audio.js";
 import { drawCard, kan } from "./card.js";
 import { $, S, reset, say } from "./state.js";
 import { ENDING, EPITAPH, INTRO, NIGHTS, PATTERNS, SITTERS } from "./story.js";
@@ -10,7 +10,7 @@ export function playLines(lines,done,dark){ clearTimeout(introTimer); const tok=
   let i=0; const p=$("introp"); let ended=false;
   const fin=()=>{ if(ended||tok!==playTok) return; ended=true; clearTimeout(introTimer); $("intro").hidden=true; document.body.classList.remove("intro"); S.dark=1; done(); };
   const show=()=>{ if(tok!==playTok) return; if(i>=lines.length){ fin(); return; } const [t,d,fx]=lines[i++]; p.classList.remove("on"); setTimeout(()=>{ p.textContent=t; p.classList.add("on"); },60);
-    if(fx==="saw") saw(); if(fx==="hammer") hammer(4); if(fx==="cloth"){ cloth(); spring(); } if(fx==="thud"){ sitThud(); S.dark=1; } if(fx==="creak") creak();
+    if(fx==="saw") saw(); if(fx==="hammer") hammer(4); if(fx==="cloth"){ cloth(); spring(); } if(fx==="thud"){ sitThud(); S.dark=1; } if(fx==="creak") creak(); if(fx==="pen") pen(); if(fx==="scrape"){ scrape(0.3); setTimeout(()=>scrape(0.25),420); }
     introTimer=setTimeout(show,d*1000); };
   $("intro").onclick=()=>{ clearTimeout(introTimer); show(); };
   $("skip").onclick=e=>{ e.stopPropagation(); fin(); };
@@ -19,9 +19,11 @@ export function beginIntro(){ audioInit(); A.ctx.resume && A.ctx.resume(); reset
 export function beginNight(i,skipBefore,resume){ hideWalk(); if(!resume) clearCheck(); const N=NIGHTS[i]; S.night=i; S.sus=0; S.heat=0;
   S.snap={seen:S.seen.slice(),frags:S.frags.slice(),log:Object.assign({},S.log)};
   const go=()=>playLines([[`${N.title}　${N.place}`,2.8]],()=>{ const sitDown=()=>{ S.state="wait"; S.wait=2.5; S.steps=0; S.queue=N.queue.map(k=>SITTERS[k]); say("（闇の中で、待つ）",true); };
-    if(N.walk) startWalk(()=>{ clearCheck(); sitThud(); sitDown(); },resume); else sitDown(); },0.05);
-  if(resume&&N.walk){ S.dark=1; $("result").hidden=true; startWalk(()=>{ clearCheck(); sitThud(); S.state="wait"; S.wait=2.5; S.steps=0; S.queue=N.queue.map(k=>SITTERS[k]); say("（闇の中で、待つ）",true); },resume); return; }
+    if(N.walk) startWalk(()=>arrived(N,sitDown),resume); else sitDown(); },0.05);
+  if(resume&&N.walk){ S.dark=1; $("result").hidden=true; startWalk(()=>arrived(N,()=>{ S.state="wait"; S.wait=2.5; S.steps=0; S.queue=N.queue.map(k=>SITTERS[k]); say("（闇の中で、待つ）",true); }),resume); return; }
   if(N.before&&!skipBefore) playLines(N.before,go); else go(); }
+// 書斎に辿り着いたら：奥様の椅子と入れ替わる顛末を、黒地に綴る
+function arrived(N,sitDown){ clearCheck(); const go=()=>{ sitThud(); sitDown(); }; if(N.arrive) playLines(N.arrive,go,0.05); else go(); }
 export function endNight(){ if(S.night+1<NIGHTS.length) beginNight(S.night+1); else playLines(ENDING,()=>finish(false),0.4); }
 export function startGame(){ beginIntro(); }
 export function restartGame(){ audioInit(); reset(); beginNight(0,true); }

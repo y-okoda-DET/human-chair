@@ -37,6 +37,8 @@ export function murmur(n){ const c=A.ctx; if(!c) return; let t=c.currentTime+0.0
   for(let i=0;i<n;i++){ const o=c.createOscillator(); o.type="sawtooth"; const f0=120+Math.random()*70; o.frequency.setValueAtTime(f0,t); o.frequency.linearRampToValueAtTime(f0*(0.85+Math.random()*0.3),t+0.14);
     const lp=c.createBiquadFilter(); lp.type="lowpass"; lp.frequency.value=420; lp.Q.value=0.8; const g=c.createGain(); g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(0.05,t+0.03); g.gain.exponentialRampToValueAtTime(0.0001,t+0.16);
     o.connect(lp).connect(g).connect(A.master); o.start(t); o.stop(t+0.18); t+=0.17+Math.random()*0.08; } }
+// ペンが紙の上を走る、かすかな擦れ（g で遠近）
+export const pen=(g=0.05)=>{ const n=4+Math.floor(Math.random()*4); for(let i=0;i<n;i++) setTimeout(()=>noiseBurst(A.white,0.05+Math.random()*0.07,g*(0.6+Math.random()*0.6),"bandpass",3400+Math.random()*1600,5),i*(90+Math.random()*80)); };
 export const saw=()=>{ for(let i=0;i<5;i++) setTimeout(()=>noiseBurst(A.white,0.16,0.12,"bandpass",2200,3),i*230); };
 export const hammer=(n)=>{ for(let i=0;i<n;i++) setTimeout(()=>{ thump(0.5); noiseBurst(A.white,0.05,0.2,"highpass",3000,1); },i*420); };
 

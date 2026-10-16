@@ -5,7 +5,7 @@ import { makePost } from "./post.js";
 import chairGlb from "./models/chair.glb?inline";
 import maidGlb from "./models/maid.glb?inline";
 import roomGlb from "./models/room.glb?inline";
-import { A, creak, leatherSquish, noiseBurst, play, scrape, thump, woodKnock } from "./audio.js";
+import { A, creak, leatherSquish, noiseBurst, pen, play, scrape, thump, woodKnock } from "./audio.js";
 import { $, S, bb, say } from "./state.js";
 
 // ---------- 椅子歩き（第三夜の頭、一度きり。屋敷の一角を3Dで歩く） ----------
@@ -458,13 +458,16 @@ export function autoStep(wx,wz,rush){ if(S.state!=="walk"||W.arrived) return;
   else { thump(0.4); if(!play("bump",0.9,0.95+Math.random()*0.1)) woodKnock(0.8); leatherSquish(0.25,0.4); if(S.t-(W.bumpT||-9)>6){ W.bumpT=S.t; insert("legs",0.5); } if(!W.said.bump){ W.said.bump=1; say("（ごつり、と何かに当たった）",true); } }
   if(rush){ creak(); scrape(0.2); heard(); W.wob=Math.min(1.2,W.wob+0.5); } else W.wob=Math.min(1.2,W.wob+0.32);
   arriveCheck(); }
-export function arriveCheck(){ if(cellAt(W.x,W.z)==="D"&&!W.arrived){ W.arrived=true; S.sus*=0.5; say("（書斎の扉の前に、辿り着いた。私は、元の椅子に戻った）"); wfade.style.opacity=1; setTimeout(()=>{ const d=W.done; hideWalk(); d&&d(); },2600); } }
+export function arriveCheck(){ if(cellAt(W.x,W.z)==="D"&&!W.arrived){ W.arrived=true; S.sus*=0.5; say("（書斎の扉の前に、辿り着いた）"); wfade.style.opacity=1; setTimeout(()=>{ const d=W.done; hideWalk(); d&&d(); },2600); } }
 // 人形の手ぶれ：こまごとに、ほんの僅か位置と角度が揺らぐ
 const jit=a=>(Math.random()-0.5)*2*a;
 // 光を焼き込んだ部屋と、焼いた光の強さ
 export const BAKED="RF";
 const LM_INT=Number(new URLSearchParams(location.search).get("lm"))||2.0;
 export const START={x:3.2,z:4.1,yaw:Math.PI/2};
+// 書斎の扉と、そこへ近づく時の独白（遠い順）
+const STUDY={x:20,z:18.5};
+const LURE=[[14,"lure1","（どこか上の方で、ペンが紙の上を走っている）"],[9,"lure2","（白粉の匂いが、降りて参ります。奥様の匂いでございます）"],[5.5,"lure3","奥様。あと幾足かで、私はあなたの椅子になれるのでございます。"],[3,"lure4","（扉の隙間の灯りが、私を手招きしておりました）"]];
 export const PARDON=2; // 置き場の外で、動かずにいて見逃される回数
 export const NOTICE=1.3; // 女中が立ち止まってから、見咎めるまでの秒
 // 続きから：場面（視点）が変わるたびに、そこを覚えておく。露見したら、ここから歩き直せる
@@ -479,7 +482,7 @@ const PLACE={R:["応接間","奥様。夜会の果てた応接間に、私と同
   S:["使用人の通路","使用人の通路の壁には、女中たちの黒い服が、まるで人の《抜け殻》のように、釘に吊されておりました。"],
   B:["裏の階段","裏の階段は暗く、私は一段上るごとに、我と我が身の浅ましさを呪いました。"]};
 const placeEl=$("place");
-export function placeCard(id){ const p=PLACE[id]; if(!p) return; placeEl.firstElementChild.textContent=p[0]; placeEl.classList.add("on");
+export function placeCard(id){ const p=PLACE[id]; if(!p) return; W.placeT=S.t; placeEl.firstElementChild.textContent=p[0]; placeEl.classList.add("on");
   clearTimeout(placeEl._t); placeEl._t=setTimeout(()=>placeEl.classList.remove("on"),3200);
   setTimeout(()=>{ if(S.state==="walk"&&!W.noticeP) say(p[1]); },900); }
 export function startWalk(done,from){
@@ -499,7 +502,7 @@ export function startWalk(done,from){
   walkResize(); wc.hidden=false; seamEl.hidden=false; wfade.style.opacity=0; document.body.classList.add("walking"); S.state="walk"; S.sitter=null; S.blobs=[]; S.w=0;
   $("bb").innerHTML='じっとする<small>押している間 / Space</small>';
   if(!from) say("（そろり、そろり。……足音が致しましたら、私はただの椅子に戻るのでございます）"); }
-export function hideWalk(){ if(!W.on&&wc.hidden) return; W.on=false; if(W.clock){ try{ W.clock.s.stop(); }catch(e){} W.clock=null; } wc.hidden=true; seamEl.hidden=true; wfade.style.opacity=0; document.body.classList.remove("walking");
+export function hideWalk(){ S.near=0; if(!W.on&&wc.hidden) return; W.on=false; if(W.clock){ try{ W.clock.s.stop(); }catch(e){} W.clock=null; } wc.hidden=true; seamEl.hidden=true; wfade.style.opacity=0; document.body.classList.remove("walking");
   $("bl").innerHTML=BTN.bl; $("bb").innerHTML=BTN.bb; $("br").innerHTML=BTN.br; bb.classList.remove("cue"); }
 export function legThud(){ thump(0.25); woodKnock(0.4); W.nStep=(W.nStep||0)+1; if(W.nStep%3===0) leatherSquish(0.1,0.4); }
 // 寄りの差し込み：ここぞという一瞬だけ、椅子の脚や革に寄る
@@ -588,6 +591,10 @@ export function walkUpdate(dt){
     const cue=!!lit||near||!!W.noticeP; if(cue!==W.cue){ W.cue=cue; bb.classList.toggle("cue",cue); if(cue&&!W.said.near){ W.said.near=1; say("（灯りが、こちらへ来る）"); } } }
   // 置き場所に身を寄せた時だけ、ひと言
   if(S.state==="walk"&&W.idle>1.2){ const s=inPlace(); if(s&&s.l&&!W.said[s.l+s.x]){ W.said[s.l+s.x]=1; say(`（${s.l}、身を寄せた）`,true); } }
+  // 書斎が近づくほど、ペンの音が聞こえ、匂いが降り、独白が熱を帯びる（胸の鼓動も早まる）
+  if(S.state==="walk"&&!W.arrived){ const dd=Math.hypot(W.x-STUDY.x,W.z-STUDY.z); S.near=clamp((16-dd)/12,0,1);
+    W.penT=(W.penT??3)-dt; if(dd<16&&W.penT<=0){ W.penT=2.5+Math.random()*3*(1-S.near*0.6); pen(0.012+S.near*0.07); }
+    if(!W.noticeP&&S.t-(W.placeT??-9)>5) for(const [r,k,l] of LURE) if(dd<r&&!W.said[k]){ W.said[k]=1; say(l); break; } }
   if(S.state==="walk"&&W.idle>6&&!W.said.rule){ W.said.rule=1; say("椅子の在るべき所に在る限り、誰も椅子などに目を留めはしませぬ。"); }
   // 椅子の姿は12コマで刻む
   W.q+=dt; if(W.q>=1/12){ W.q-=1/12; W.vx+=(W.x-W.vx)*0.6; W.vz+=(W.z-W.vz)*0.6; let d2=((W.yaw-W.vyaw)%(Math.PI*2)+Math.PI*3)%(Math.PI*2)-Math.PI; W.vyaw+=d2*0.6;

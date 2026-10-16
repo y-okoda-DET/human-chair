@@ -54,7 +54,7 @@ export function update(now){
     if(!wasSit){ S.sitter={name:"女中",kg:0,dog:false}; } say(S.sitter&&S.sitter.dog?"（獣は吠え止まぬ。誰かが来る）":(wasSit?"……誰か、居るのか。":"（女中が入って来て、椅子の前で足を止めた）")); }
   window.__isu=()=>S; window.__fin=finish; window.__dbg={SITTERS,NIGHTS,W,walkStep,walkCaught,beginNight,PATROLS,SPOTS,inPlace,heard,tp:(x,z,yaw)=>Object.assign(W,{x,z,px:x,pz:z,vx:x,vz:z,yaw,pyaw:yaw,vyaw:yaw})};
   // heartbeat
-  const bpm=58+S.lung*85+S.sus*0.5; S.beat-=dt; if(S.beat<=0){ S.beat=60/bpm; if(S.state!=="intro"&&S.state!=="title") thump(0.15+S.lung*0.5+S.sus*0.003); S.pulse=1; }
+  const bpm=58+S.lung*85+S.sus*0.5+(S.near||0)*34; S.beat-=dt; if(S.beat<=0){ S.beat=60/bpm; if(S.state!=="intro"&&S.state!=="title") thump(0.15+S.lung*0.5+S.sus*0.003+(S.near||0)*0.12); S.pulse=1; }
   S.pulse=Math.max(0,S.pulse-dt*4);
   // 12fps quantized blob/spot motion
   S.q+=dt; if(S.q>=1/12){ S.q-=1/12;
