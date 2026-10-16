@@ -182,21 +182,85 @@ export function build3D(){
   const faceT=tex(128,160,(g,w,h)=>{ g.fillStyle="#120c08"; g.fillRect(0,0,w,h); const gr=g.createRadialGradient(64,66,4,64,70,46); gr.addColorStop(0,"#d9cfbf"); gr.addColorStop(1,"rgba(40,30,20,0)"); g.fillStyle=gr; g.beginPath(); g.ellipse(64,70,30,40,0,0,7); g.fill();
     g.fillStyle="#120c08"; g.beginPath(); g.ellipse(52,64,5,3,0,0,7); g.ellipse(76,64,5,3,0,0,7); g.fill(); g.fillRect(56,94,16,2); noise(g,w,h,20); });
   faceT.colorSpace=T.SRGBColorSpace;
-  for(const [x,y,z,ry] of [[11.5,1.9,3.02,0],[6.98,1.9,1.6,-Math.PI/2],[21.97,4.9,10.4,-Math.PI/2],[16.03,4.2,4.2,Math.PI/2],[3.0,1.9,15.02,0]]){
+  // 肖像は、斜め上から見える側の壁にだけ掛ける（手前の壁は透けて消えるので）
+  for(const [x,y,z,ry] of [[11.5,1.9,4.97,Math.PI],[6.97,2.25,1.7,-Math.PI/2],[21.97,4.9,10.4,-Math.PI/2],[17.6,2.0,7.97,Math.PI],[3.0,1.9,15.97,Math.PI],[4.4,2.0,6.97,Math.PI]]){
     const fr=new T.Mesh(new T.BoxGeometry(0.62,0.78,0.04),M.brass); fr.position.set(x,y,z); fr.rotation.y=ry; scene.add(fr);
     const pic=new T.Mesh(new T.PlaneGeometry(0.52,0.66),new T.MeshPhongMaterial({map:faceT})); pic.position.set(x,y,z); pic.rotation.y=ry; pic.translateZ(0.025); scene.add(pic); }
+  // ---------- 調度：暖炉、月の差す窓とカーテン、敷物、燭台の飾り、鉢植え、宙を舞う埃 ----------
+  const FLICK=[], MOTES=[];
+  const wallObj=(o,x,y,z,ry)=>{ o.position.set(x,y,z); o.rotation.y=ry; scene.add(o); return o; };
+  // 月夜の窓：桟の入った硝子に、青白い夜空と月明かり。両脇に深紅の天鵞絨のカーテン、床には窓の形の月光
+  const nightT=tex(128,256,(g,w,h)=>{ const gr=g.createLinearGradient(0,0,0,h); gr.addColorStop(0,"#1c2c48"); gr.addColorStop(1,"#0a1020"); g.fillStyle=gr; g.fillRect(0,0,w,h);
+    const m=g.createRadialGradient(86,60,2,86,60,60); m.addColorStop(0,"rgba(230,236,255,.95)"); m.addColorStop(0.15,"rgba(170,190,230,.5)"); m.addColorStop(1,"rgba(60,80,120,0)"); g.fillStyle=m; g.fillRect(0,0,w,h);
+    g.fillStyle="#0b0806"; g.fillRect(w/2-3,0,6,h); for(const y of [h/3,2*h/3]) g.fillRect(0,y-3,w,6); g.strokeStyle="#0b0806"; g.lineWidth=10; g.strokeRect(0,0,w,h); });
+  nightT.colorSpace=T.SRGBColorSpace;
+  const glassM=new T.MeshBasicMaterial({map:nightT,color:0x8fa0c0});
+  const paneT=tex(128,256,(g,w,h)=>{ g.fillStyle="#000"; g.fillRect(0,0,w,h); g.fillStyle="rgba(150,175,230,1)"; for(const [x0,x1] of [[8,w/2-5],[w/2+5,w-8]]) for(const [y0,y1] of [[8,h/3-5],[h/3+5,2*h/3-5],[2*h/3+5,h-8]]) g.fillRect(x0,y0,x1-x0,y1-y0);
+    const d=g.getImageData(0,0,w,h); g.putImageData(d,0,0); g.filter="blur(4px)"; g.drawImage(g.canvas,0,0); });
+  const moonM=new T.MeshBasicMaterial({map:paneT,transparent:true,blending:T.AdditiveBlending,depthWrite:false,opacity:0.32,color:0x9fb4e6});
+  const beamT=tex(32,128,(g,w,h)=>{ const gr=g.createLinearGradient(0,0,0,h); gr.addColorStop(0,"rgba(170,190,240,.55)"); gr.addColorStop(1,"rgba(170,190,240,0)"); g.fillStyle=gr; g.fillRect(0,0,w,h); const s=g.createLinearGradient(0,0,w,0); });
+  const beamM=new T.MeshBasicMaterial({map:beamT,transparent:true,blending:T.AdditiveBlending,depthWrite:false,side:T.DoubleSide,opacity:0.16,color:0xb8c8ff});
+  const velvet=pbr("carpet",1,{color:0x6a1018});
+  const curtain=(w,h)=>{ const g=new T.PlaneGeometry(w,h,24,8), p=g.attributes.position; for(let i=0;i<p.count;i++){ const x=p.getX(i), y=p.getY(i); p.setZ(i,Math.sin(x/w*Math.PI*7)*0.045*(1.2-(y/h+0.5)*0.5)); } g.computeVertexNormals(); const m=new T.Mesh(g,velvet); m.castShadow=true; return m; };
+  const windowOn=(x,z,ry,w=1.0,h=2.0,y0=0.75)=>{ const o=new T.Group();
+    const gl=new T.Mesh(new T.PlaneGeometry(w,h),glassM); gl.position.set(0,y0+h/2,0.01); o.add(gl);
+    for(const [bw,bh,bx,by] of [[w+0.16,0.1,0,y0-0.04],[w+0.16,0.1,0,y0+h+0.04],[0.08,h,-w/2-0.04,y0+h/2],[0.08,h,w/2+0.04,y0+h/2]]){ const b=new T.Mesh(new T.BoxGeometry(bw,bh,0.08),M.wood); b.position.set(bx,by,0.03); o.add(b); }
+    for(const sd of [-1,1]){ const c=curtain(0.5,h+0.5); c.position.set(sd*(w/2+0.12),y0+(h+0.5)/2-0.05,0.09); o.add(c); }
+    const val=new T.Mesh(new T.BoxGeometry(w+0.9,0.28,0.12),velvet); val.position.set(0,y0+h+0.3,0.08); o.add(val);
+    // 床に落ちる窓の形の月光と、宙の光の筋
+    const patch=new T.Mesh(new T.PlaneGeometry(w*1.15,h*0.9),moonM); patch.rotation.x=-Math.PI/2; patch.position.set(0,0.008,h*0.5); patch.scale.y=1; o.add(patch);
+    const beam=new T.Mesh(new T.PlaneGeometry(w*1.1,Math.hypot(h*0.5,y0+h*0.6)),beamM); beam.position.set(0,(y0+h*0.6)/2,h*0.5/2); beam.rotation.x=-Math.atan2(h*0.5,y0+h*0.6); o.add(beam);
+    const l=new T.PointLight(0x7f95d0,0.5*Math.PI,4.5,1.6); l.position.set(0,y0+h*0.5,0.6); o.add(l);
+    return wallObj(o,x,0,z,ry); };
+  windowOn(2.3,6.98,Math.PI); windowOn(9.4,4.98,Math.PI,0.9,1.9); windowOn(13.6,4.98,Math.PI,0.9,1.9);
+  // 暖炉：木の炉棚に真鍮の柵、揺れる火
+  { const o=new T.Group(); const part=(w,h,d,x,y,z,m)=>{ const b=new T.Mesh(new T.BoxGeometry(w,h,d),m); b.position.set(x,y,z); b.castShadow=true; b.receiveShadow=true; o.add(b); return b; };
+    part(1.5,0.1,0.42,0,1.2,0.2,M.wood); part(0.22,1.2,0.34,-0.6,0.6,0.17,M.wood); part(0.22,1.2,0.34,0.6,0.6,0.17,M.wood); part(1.0,0.22,0.3,0,1.04,0.15,M.wood);
+    part(1.0,0.92,0.06,0,0.46,0.02,M.dark); part(1.0,0.04,0.36,0,0.02,0.18,M.dark);
+    for(let i=0;i<9;i++){ const r=new T.Mesh(new T.CylinderGeometry(0.008,0.008,0.32,6),M.brass); r.position.set(-0.4+i*0.1,0.16,0.4); o.add(r); } part(0.86,0.03,0.03,0,0.32,0.4,M.brass);
+    const fireT=tex(64,64,(g,w,h)=>{ const gr=g.createRadialGradient(32,40,2,32,36,30); gr.addColorStop(0,"rgba(255,240,200,1)"); gr.addColorStop(0.3,"rgba(255,150,50,.8)"); gr.addColorStop(1,"rgba(200,40,0,0)"); g.fillStyle=gr; g.fillRect(0,0,w,h); });
+    const fireM=new T.SpriteMaterial({map:fireT,blending:T.AdditiveBlending,depthWrite:false});
+    const flames=[]; for(let i=0;i<4;i++){ const f=new T.Sprite(fireM); f.position.set(-0.24+i*0.16,0.2,0.18); f.scale.set(0.3,0.4,1); o.add(f); flames.push(f); }
+    const fl=new T.PointLight(0xff8a3a,1.6*Math.PI,6,1.4); fl.position.set(0,0.45,0.6); o.add(fl);
+    FLICK.push(t=>{ fl.intensity=Math.PI*(1.3+0.5*Math.sin(t*7.3)*Math.sin(t*3.1)+0.3*Math.random()); flames.forEach((f,i)=>{ const k=0.3+0.12*Math.sin(t*9+i*2)+0.06*Math.random(); f.scale.set(k*0.8,k*1.3+0.05,1); }); });
+    const c1=new T.Mesh(new T.CylinderGeometry(0.03,0.04,0.3,10),M.brass); c1.position.set(-0.55,1.4,0.2); o.add(c1); const c2=c1.clone(); c2.position.x=0.55; o.add(c2);
+    wallObj(o,6.98,0,1.7,-Math.PI/2); OBST.push([6.55,0.95,7,2.45]); }
+  // 敷物：応接間の真ん中と、廊下の細長い絨毯
+  const rugM=pbr("carpet",1,{color:0xb05050}); rugM.map=rugM.map.clone(); rugM.map.repeat.set(3,2); rugM.map.needsUpdate=true;
+  { const r=new T.Mesh(new T.PlaneGeometry(3.4,2.6),rugM); r.rotation.x=-Math.PI/2; r.position.set(3.7,0.004,3.8); r.receiveShadow=true; scene.add(r);
+    const rn=new T.Mesh(new T.PlaneGeometry(8.4,1.0),rugM); rn.rotation.x=-Math.PI/2; rn.position.set(11.4,0.004,4.0); rn.receiveShadow=true; scene.add(rn); }
+  // 円卓の上の燭台と、廊下の突き当たりの鉢植え
+  const candleM=new T.SpriteMaterial({map:tex(32,32,(g,w,h)=>{ const gr=g.createRadialGradient(16,18,0,16,16,16); gr.addColorStop(0,"rgba(255,235,190,1)"); gr.addColorStop(0.35,"rgba(255,170,80,.5)"); gr.addColorStop(1,"rgba(255,150,60,0)"); g.fillStyle=gr; g.fillRect(0,0,w,h); }),blending:T.AdditiveBlending,depthWrite:false});
+  { const cand=new T.Group(); const st=new T.Mesh(new T.CylinderGeometry(0.02,0.07,0.32,12),M.brass); st.position.y=0.16; cand.add(st);
+    for(const a of [0,2.1,4.2]){ const arm=new T.Mesh(new T.CylinderGeometry(0.012,0.012,0.16,6),M.brass); arm.position.set(Math.cos(a)*0.08,0.3,Math.sin(a)*0.08); arm.rotation.z=Math.PI/2; arm.rotation.y=-a; cand.add(arm);
+      const cd=new T.Mesh(new T.CylinderGeometry(0.014,0.014,0.12,8),M.apron); cd.position.set(Math.cos(a)*0.15,0.37,Math.sin(a)*0.15); cand.add(cd);
+      const f=new T.Sprite(candleM); f.position.set(Math.cos(a)*0.15,0.45,Math.sin(a)*0.15); f.scale.set(0.12,0.16,1); cand.add(f); }
+    cand.position.set(3.6,0.75,2.6); scene.add(cand);
+    const cl=new T.PointLight(0xffb060,0.6*Math.PI,3.5,1.6); cl.position.set(3.6,1.3,2.6); scene.add(cl); FLICK.push(t=>{ cl.intensity=Math.PI*(0.55+0.08*Math.sin(t*11)+0.05*Math.random()); });
+    const pot=new T.Mesh(new T.CylinderGeometry(0.2,0.15,0.4,16),M.brass); pot.position.set(15.6,0.2,4.7); scene.add(pot);
+    for(let i=0;i<9;i++){ const a=i/9*Math.PI*2, lf=new T.Mesh(new T.PlaneGeometry(0.12,0.9),new T.MeshStandardMaterial({color:0x1e3018,side:T.DoubleSide,roughness:0.7})); lf.position.set(15.6+Math.cos(a)*0.18,0.75,4.7+Math.sin(a)*0.18); lf.rotation.set(0.5*Math.sin(a),-a,0.5*Math.cos(a)); scene.add(lf); }
+    OBST.push([15.35,4.45,15.85,4.95]); }
+  // 宙を舞う埃：灯りと月明かりの中で、ゆっくり漂う
+  { const n=260, g=new T.BufferGeometry(), pos=new Float32Array(n*3); for(let i=0;i<n;i++){ const inR=i<160; pos[i*3]=inR?1.2+Math.random()*5.6:7+Math.random()*9; pos[i*3+1]=Math.random()*2.8; pos[i*3+2]=inR?1.2+Math.random()*5.6:3.1+Math.random()*1.8; }
+    g.setAttribute("position",new T.BufferAttribute(pos,3)); const dustT=tex(16,16,(c,w,h)=>{ const gr=c.createRadialGradient(8,8,0,8,8,8); gr.addColorStop(0,"rgba(255,240,220,1)"); gr.addColorStop(1,"rgba(255,240,220,0)"); c.fillStyle=gr; c.fillRect(0,0,w,h); });
+    const pts=new T.Points(g,new T.PointsMaterial({size:0.03,map:dustT,transparent:true,depthWrite:false,blending:T.AdditiveBlending,opacity:0.55,color:0xffe6c8})); scene.add(pts);
+    MOTES.push(t=>{ for(let i=0;i<n;i++){ pos[i*3+1]+=Math.sin(t*0.3+i)*0.0008-0.0004; if(pos[i*3+1]<0) pos[i*3+1]=2.8; pos[i*3]+=Math.sin(t*0.2+i*1.7)*0.0006; } g.attributes.position.needsUpdate=true; }); }
   // 書斎の扉と、漏れる灯り
   { box(1.2,2.2,0.08,M.wood,20,3,18.98,0,false,false); const leak=new T.Mesh(new T.PlaneGeometry(1.2,0.03),M.glowY); leak.position.set(20,3.01,18.92); leak.rotation.y=Math.PI; scene.add(leak);
     const k=new T.Mesh(new T.PlaneGeometry(0.02,2.1),M.glowY); k.position.set(20,4.06,18.92); k.rotation.y=Math.PI; scene.add(k); }
   // 灯り
   scene.add(new T.HemisphereLight(0x302438,0x0a0604,0.5*Math.PI));
-  const glowT=tex(64,64,(g,w,h)=>{ const gr=g.createRadialGradient(32,32,0,32,32,32); gr.addColorStop(0,"rgba(255,220,160,1)"); gr.addColorStop(0.25,"rgba(255,170,80,.45)"); gr.addColorStop(1,"rgba(255,150,60,0)"); g.fillStyle=gr; g.fillRect(0,0,w,h); });
+  const glowT=tex(64,64,(g,w,h)=>{ const gr=g.createRadialGradient(32,32,0,32,32,32); gr.addColorStop(0,"rgba(255,225,170,1)"); gr.addColorStop(0.1,"rgba(255,190,110,.55)"); gr.addColorStop(0.35,"rgba(255,160,70,.14)"); gr.addColorStop(1,"rgba(255,150,60,0)"); g.fillStyle=gr; g.fillRect(0,0,w,h); });
   const glowM=new T.SpriteMaterial({map:glowT,blending:T.AdditiveBlending,depthWrite:false,fog:true,opacity:0.35});
   const glow=(x,y,z,s)=>{ s*=0.45; const sp=new T.Sprite(glowM); sp.position.set(x,y,z); sp.scale.set(s,s,1); scene.add(sp); const b=new T.Mesh(new T.SphereGeometry(0.035,6,5),M.glowY); b.position.set(x,y,z); scene.add(b); return sp; };
   const LIGHTS=[[3.5,2.7,3.6,0xffa860,1.1,8],[11.5,2.5,4,0xff9a50,0.9,7],[18.2,5.2,4.6,0xffb070,1.4,11],[20,5.4,12,0xffa860,1.0,9],[2.5,2.9,12.5,0xd8c8a0,0.6,6],[20,4.4,18.4,0xffc080,1.2,5]];
   for(const [x,y,z,c,i,d] of LIGHTS){ const l=new T.PointLight(c,i*Math.PI,d,1.6); l.position.set(x,y,z); scene.add(l); }
   for(const [x,y,z,s] of [[1.08,2.1,2.4,0.7],[1.08,2.1,4.8,0.7],[10.2,2.1,3.06,0.6],[13.4,2.1,4.94,0.6],[21.92,2.2,4.5,0.7],[18.08,4.9,12.5,0.6],[21.92,4.9,15.5,0.6],[2.5,3.0,12.5,0.5]]) glow(x,y,z,s);
-  { const ch=new T.Group(); for(let i=0;i<6;i++){ const a=i/6*Math.PI*2; const b=new T.Mesh(new T.SphereGeometry(0.04,6,5),M.glowY); b.position.set(Math.cos(a)*0.4,0,Math.sin(a)*0.4); ch.add(b); } ch.position.set(18.2,5.2,4.6); scene.add(ch); glow(18.2,5.2,4.6,2.2); glow(3.5,2.7,3.6,1.6); glow(20,4.1,18.9,1.4); }
+  { const brass=M.brass||M.wood; const chand=(x,y,z,top,r)=>{ const ch=new T.Group(); for(let i=0;i<6;i++){ const a=i/6*Math.PI*2; const b=new T.Mesh(new T.SphereGeometry(0.04,6,5),M.glowY); b.position.set(Math.cos(a)*r,0.06,Math.sin(a)*r); ch.add(b); const cup=new T.Mesh(new T.CylinderGeometry(0.035,0.02,0.06,8),brass); cup.position.set(Math.cos(a)*r,0,Math.sin(a)*r); ch.add(cup); }
+      const ring=new T.Mesh(new T.TorusGeometry(r,0.018,6,24),brass); ring.rotation.x=Math.PI/2; ch.add(ring); const bowl=new T.Mesh(new T.SphereGeometry(0.12,10,8,0,Math.PI*2,Math.PI/2,Math.PI/2),brass); bowl.position.y=-0.02; ch.add(bowl);
+      for(let i=0;i<3;i++){ const a=i/3*Math.PI*2, arm=new T.Mesh(new T.CylinderGeometry(0.008,0.008,r*1.1,4),brass); arm.position.set(Math.cos(a)*r/2,0.12,Math.sin(a)*r/2); arm.rotation.set(Math.sin(a)*1.1,0,-Math.cos(a)*1.1); ch.add(arm); }
+      const chain=new T.Mesh(new T.CylinderGeometry(0.01,0.01,top-y,4),brass); chain.position.y=(top-y)/2+0.2; ch.add(chain); ch.position.set(x,y,z); scene.add(ch); };
+    chand(18.2,5.2,4.6,6.4,0.4); chand(3.5,2.55,3.6,3.2,0.32); glow(18.2,5.2,4.6,2.2); glow(3.5,2.62,3.6,1.6); glow(20,4.1,18.9,1.4); }
   // 置き場の凹み：長く椅子が置かれていた跡。脚の四つの窪みと、毛足の潰れた四角
   { const dentT=tex(128,128,(g,w,h)=>{ g.clearRect(0,0,w,h);
       { const gr=g.createRadialGradient(64,64,20,64,64,62); gr.addColorStop(0,"rgba(0,0,0,.45)"); gr.addColorStop(0.7,"rgba(0,0,0,.3)"); gr.addColorStop(1,"rgba(0,0,0,0)"); g.fillStyle=gr; g.fillRect(14,16,100,96); }
@@ -230,7 +294,7 @@ export function build3D(){
       P.head=m.getObjectByName("head"); for(const l of P.lamp) l.position.set(-0.17,0.84,0.37); } }); }
   const post=makePost(ren,scene,cam); window.__post=post;
   const key=new T.PointLight(0xffd2a0,0,3,1.5); scene.add(key); // 寄りの時だけ灯す、人形劇の手持ちの明かり
-  R3={T,scene,ren,cam,me,M,post,key}; window.__R3=R3; W.built=true; walkResize(); }
+  R3={T,scene,ren,cam,me,M,post,key,FLICK,MOTES}; window.__R3=R3; W.built=true; walkResize(); }
 
 export function walkResize(){ if(R3){ R3.ren.setSize(innerWidth,innerHeight,false); R3.cam.aspect=innerWidth/innerHeight; R3.cam.updateProjectionMatrix(); R3.post.resize(); }
   // 椅子の中：革の継ぎ目に開いた細い隙間
@@ -279,11 +343,15 @@ const LM_INT=Number(new URLSearchParams(location.search).get("lm"))||2.0;
 export const START={x:3.2,z:4.1,yaw:Math.PI/2};
 export const PARDON=2; // 置き場の外で、動かずにいて見逃される回数
 export const NOTICE=1.3; // 女中が立ち止まってから、見咎めるまでの秒
-export function startWalk(done){
+// 続きから：場面（視点）が変わるたびに、そこを覚えておく。露見したら、ここから歩き直せる
+export let CHECK=null;
+export function clearCheck(){ CHECK=null; }
+export function startWalk(done,from){
   if(!W.built) build3D();
   Object.assign(W,{on:true,done,x:START.x,z:START.z,yaw:START.yaw,px:START.x,pz:START.z,pyaw:START.yaw,vx:START.x,vz:START.z,vyaw:START.yaw,last:0,lastT:-9,moveT:-9,wob:0,lift:0,side:0,q:0,inK:0,
     notice:0,noticeP:null,pardon:0,pardonCd:0,pardonLit:false,insT:0,insK:"",insD:1,nStep:0,stepT:0,cam:null,camId:"",mapYaw:0,litPass:0,povT:0,povP:null,povCd:6,grace:2,arrived:false,said:{},idle:0,hint:0,cue:false});
   PATROLS.forEach((P,k)=>{ Object.assign(P,{x:P.route[P.i][0],z:P.route[P.i][1],dir:1,wait:k===0?3:1,yaw:0,lyaw:0,st:0,alert:null,q:0}); P.i=Math.min(P.i+1,P.route.length-1); });
+  if(from){ Object.assign(W,{x:from.x,z:from.z,yaw:from.yaw,px:from.x,pz:from.z,pyaw:from.yaw,vx:from.x,vz:from.z,vyaw:from.yaw,pardon:from.pardon,grace:2.5,camId:"",cam:null,said:{rule:1,near:1,first:1}}); }
   if(!W.clock){ const k=play("clock",0,1,0,true); if(k) W.clock=k; }
   walkResize(); wc.hidden=false; seamEl.hidden=false; wfade.style.opacity=0; document.body.classList.add("walking"); S.state="walk"; S.sitter=null; S.blobs=[]; S.w=0;
   $("bb").innerHTML='じっとする<small>押している間 / Space</small>';
@@ -375,12 +443,15 @@ export function walkUpdate(dt){
     me.userData.legs.forEach((l,i)=>{ const left=i%2===0; l.position.y=l.userData.y0+((W.side<0)===left&&i<2?W.lift*0.08:0); }); }
   walkRender(dt); }
 export function walkRender(dt){ const cam=R3.cam, T=R3.T; if(R3.syncWall) R3.syncWall();
+  if(Math.floor(S.t*12)!==W.frame){ for(const f of R3.FLICK) f(S.t); for(const f of R3.MOTES) f(S.t); }
   const fx=Math.sin(W.pyaw), fz=Math.cos(W.pyaw), fy=floorAt(W.px,W.pz);
   // 動いている間は定点から覗き、息を殺せば椅子の中から
   const want=S.hold&&S.state==="walk"?1:0; W.inK+=(want-W.inK)*Math.min(1,dt*(want?2.6:5));
   // 画面は12コマで刻む：コマが替わる時だけ視点を動かし、描く
   const fr=Math.floor(S.t*12), tick=fr!==W.frame; W.frame=fr;
-  const cf=camFor(W.px,W.pz); if(!W.cam||cf.id!==W.camId){ W.camId=cf.id; W.cam={p:new T.Vector3(...cf.p),l:new T.Vector3(...cf.l)}; }
+  const cf=camFor(W.px,W.pz); if(!W.cam||cf.id!==W.camId){
+    if(W.camId&&S.state==="walk"&&!W.arrived&&!W.noticeP&&!(CHECK&&CHECK.id===cf.id)){ CHECK={id:cf.id,x:W.x,z:W.z,yaw:W.yaw,pardon:W.pardon}; }
+    W.camId=cf.id; W.cam={p:new T.Vector3(...cf.p),l:new T.Vector3(...cf.l)}; }
   else if(tick){ W.cam.p.lerp(new T.Vector3(...cf.p),0.25); W.cam.l.lerp(new T.Vector3(...cf.l),0.25); }
   W.camYaw=Math.atan2(W.cam.l.x-W.cam.p.x,W.cam.l.z-W.cam.p.z);
   const ins=new T.Vector3(W.px+fx*0.3,fy+0.6,W.pz+fz*0.3), insL=new T.Vector3(W.px+fx*3,fy+0.75,W.pz+fz*3);

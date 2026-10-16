@@ -2,7 +2,7 @@ import { A, audioInit, cloth, creak, hammer, saw, sitThud, spring } from "./audi
 import { drawCard, kan } from "./card.js";
 import { $, S, reset, say } from "./state.js";
 import { ENDING, EPITAPH, INTRO, NIGHTS, PATTERNS, SITTERS } from "./story.js";
-import { hideWalk, startWalk } from "./walk.js";
+import { CHECK, clearCheck, hideWalk, startWalk } from "./walk.js";
 
 export let introTimer=null;
 export let playTok=0;
@@ -16,15 +16,16 @@ export function playLines(lines,done,dark){ clearTimeout(introTimer); const tok=
   $("skip").onclick=e=>{ e.stopPropagation(); fin(); };
   show(); }
 export function beginIntro(){ audioInit(); A.ctx.resume && A.ctx.resume(); reset(); playLines(INTRO,()=>beginNight(0,true)); }
-export function beginNight(i,skipBefore){ hideWalk(); const N=NIGHTS[i]; S.night=i; S.sus=0; S.heat=0;
+export function beginNight(i,skipBefore,resume){ hideWalk(); if(!resume) clearCheck(); const N=NIGHTS[i]; S.night=i; S.sus=0; S.heat=0;
   S.snap={seen:S.seen.slice(),frags:S.frags.slice(),log:Object.assign({},S.log)};
   const go=()=>playLines([[`${N.title}　${N.place}`,2.8]],()=>{ const sitDown=()=>{ S.state="wait"; S.wait=2.5; S.steps=0; S.queue=N.queue.map(k=>SITTERS[k]); say("（闇の中で、待つ）",true); };
-    if(N.walk) startWalk(()=>{ sitThud(); sitDown(); }); else sitDown(); },0.05);
+    if(N.walk) startWalk(()=>{ clearCheck(); sitThud(); sitDown(); },resume); else sitDown(); },0.05);
+  if(resume&&N.walk){ S.dark=1; $("result").hidden=true; startWalk(()=>{ clearCheck(); sitThud(); S.state="wait"; S.wait=2.5; S.steps=0; S.queue=N.queue.map(k=>SITTERS[k]); say("（闇の中で、待つ）",true); },resume); return; }
   if(N.before&&!skipBefore) playLines(N.before,go); else go(); }
 export function endNight(){ if(S.night+1<NIGHTS.length) beginNight(S.night+1); else playLines(ENDING,()=>finish(false),0.4); }
 export function startGame(){ beginIntro(); }
 export function restartGame(){ audioInit(); reset(); beginNight(0,true); }
-export function retryNight(){ audioInit(); const n=S.night, snap=S.snap; reset(); S.seen=snap.seen; S.frags=snap.frags; S.log=snap.log; beginNight(n,true); }
+export function retryNight(){ audioInit(); const n=S.night, snap=S.snap, from=S.walkCaught?CHECK:null; reset(); S.seen=snap.seen; S.frags=snap.frags; S.log=snap.log; beginNight(n,true,from||undefined); }
 export function beginSit(st){ S.sitter=st; S.ts=0; S.w=0; S.lineIdx=0; S.listen=null; S.fidgetT=0;
   S.targets=PATTERNS[st.pat].map(b=>b.slice()); S.blobs=S.targets.map(b=>[b[0],b[1],b[2],0]); sitThud(); if(!st.dog){ cloth(); spring(); } say(st.dog?"（何かが、ひらりと飛び乗った）":"（何者かが、どっかと腰を下ろした）"); }
 
@@ -47,7 +48,8 @@ export function finish(caught){ hideWalk(); S.done=true; S.caught=caught; S.stat
   S.share=caught?`${N.title}、${N.place}にて露見。椅子の胴の中で${n}人の重みを知りました。${hv} #人間椅子`:`三夜を越え、椅子の胴の中で${n}人の重みを知りました。${hv}題は『人間椅子』と致したく。 #人間椅子`;
   S.cardLead=caught?`${N.title}、${N.place}にて`:"三夜、椅子の胴の中で";
   S.cardEnd=caught?null:"題は『人間椅子』と。";
-  $("retry").hidden=!caught||S.night===0; $("again").textContent=caught&&S.night>0?"初めから":"もう一度";
+  S.walkCaught=caught&&!!NIGHTS[S.night].walk&&S.sitter&&S.sitter.name==="屋敷の女中";
+  $("retry").hidden=!caught||(S.night===0&&!S.walkCaught); $("retry").textContent=S.walkCaught&&CHECK?"続きから":"この夜から"; $("again").textContent=caught&&S.night>0?"初めから":"もう一度";
   $("toast").textContent=""; $("result").hidden=false;
   $("cardimg").removeAttribute("src"); S.cardBlob=null;
   drawCard(n,heavy,caught).catch(e=>console.error(e)); }

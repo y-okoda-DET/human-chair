@@ -51,7 +51,7 @@ export function update(now){
   if(S.sus>=99&&S.state==="walk"){ const P=PATROLS.slice().sort((a,b)=>Math.hypot(a.x-W.x,a.z-W.z)-Math.hypot(b.x-W.x,b.z-W.z))[0]; if(P&&P.g){ P.lyaw=Math.atan2(W.px-P.x,W.pz-P.z); } walkCaught(P&&P.g?P:null,"……椅子が、歩いている。"); }
   if(S.sus>=99&&(S.state==="sit"||S.state==="wait"||S.state==="leave")){ const wasSit=S.state==="sit"; S.state="caught"; S.ts=0; S.listen=null; bb.classList.remove("cue");
     if(!wasSit){ S.sitter={name:"女中",kg:0,dog:false}; } say(S.sitter&&S.sitter.dog?"（獣は吠え止まぬ。誰かが来る）":(wasSit?"……誰か、居るのか。":"（女中が入って来て、椅子の前で足を止めた）")); }
-  window.__isu=()=>S; window.__fin=finish; window.__dbg={SITTERS,NIGHTS,W,walkStep,beginNight,PATROLS,SPOTS,inPlace,tp:(x,z,yaw)=>Object.assign(W,{x,z,px:x,pz:z,vx:x,vz:z,yaw,pyaw:yaw,vyaw:yaw})};
+  window.__isu=()=>S; window.__fin=finish; window.__dbg={SITTERS,NIGHTS,W,walkStep,walkCaught,beginNight,PATROLS,SPOTS,inPlace,tp:(x,z,yaw)=>Object.assign(W,{x,z,px:x,pz:z,vx:x,vz:z,yaw,pyaw:yaw,vyaw:yaw})};
   // heartbeat
   const bpm=58+S.lung*85+S.sus*0.5; S.beat-=dt; if(S.beat<=0){ S.beat=60/bpm; if(S.state!=="intro"&&S.state!=="title") thump(0.15+S.lung*0.5+S.sus*0.003); S.pulse=1; }
   S.pulse=Math.max(0,S.pulse-dt*4);
