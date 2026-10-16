@@ -1,6 +1,7 @@
 import * as THREE from "three";
+import { HDRLoader } from "three/examples/jsm/loaders/HDRLoader.js";
 import { makePost } from "./post.js";
-import { A, creak, leatherSquish, noiseBurst, scrape, thump, woodKnock } from "./audio.js";
+import { A, creak, leatherSquish, noiseBurst, play, scrape, thump, woodKnock } from "./audio.js";
 import { $, S, bb, say } from "./state.js";
 
 // ---------- 椅子歩き（第三夜の頭、一度きり。屋敷の一角を3Dで歩く） ----------
@@ -65,15 +66,19 @@ export function build3D(){
   const carpetT=tex(128,128,(g,w,h)=>{ g.fillStyle="#5c1414"; g.fillRect(0,0,w,h); g.fillStyle="#7a5a20"; g.fillRect(0,0,8,h); g.fillRect(w-8,0,8,h); noise(g,w,h,22); });
   const ceilT=tex(64,64,(g,w,h)=>{ g.fillStyle="#17110d"; g.fillRect(0,0,w,h); noise(g,w,h,10); });
   const leatherT=tex(128,128,(g,w,h)=>{ g.fillStyle="#4a2116"; g.fillRect(0,0,w,h); for(let i=0;i<500;i++){ g.strokeStyle=`rgba(0,0,0,${Math.random()*0.08})`; g.lineWidth=1; g.beginPath(); const x=Math.random()*w,y=Math.random()*h; g.moveTo(x,y); g.lineTo(x+Math.random()*10-5,y+Math.random()*10-5); g.stroke(); } noise(g,w,h,8); });
+  // 写真素材（Poly Haven, CC0）：色・凹凸・粗さと陰。読み込みが済むまでは、手描きの質感で代わりを務める
+  const TL=new T.TextureLoader();
+  const pbr=(name,rep=1,opt={})=>{ const ld=(k,srgb)=>{ const t=TL.load(`./tex/${name}_${k}.jpg`); t.wrapS=t.wrapT=T.RepeatWrapping; t.repeat.set(rep,rep); t.anisotropy=4; if(srgb) t.colorSpace=T.SRGBColorSpace; return t; };
+    const orm=ld("orm"); return new T.MeshStandardMaterial({map:ld("diff",true),normalMap:ld("nor"),roughnessMap:orm,aoMap:orm,aoMapIntensity:0.8,roughness:1,metalness:0,...opt}); };
   const M={
-    wall:new T.MeshPhongMaterial({map:wallT,side:T.FrontSide,shininess:4}),
-    floor:new T.MeshPhongMaterial({map:floorT,shininess:30,specular:0x332211}),
-    carpet:new T.MeshPhongMaterial({map:carpetT,shininess:2}),
+    wall:new T.MeshStandardMaterial({map:wallT,side:T.FrontSide,roughness:0.9}),
+    floor:pbr("parquet",1,{color:0x6e5444,normalScale:new T.Vector2(0.8,0.8)}),
+    carpet:pbr("carpet",2,{color:0xd07070}),
     ceil:new T.MeshPhongMaterial({map:ceilT,side:T.FrontSide}),
-    wood:new T.MeshPhongMaterial({color:0x3b2414,shininess:40,specular:0x2a1a10,side:T.DoubleSide}),
-    leather:new T.MeshPhongMaterial({map:leatherT,color:0xffffff,shininess:55,specular:0x3a2a20}),
-    leather2:new T.MeshPhongMaterial({map:leatherT,color:0xb8a090,shininess:40,specular:0x2a2018}),
-    brass:new T.MeshPhongMaterial({color:0x9a7430,shininess:80,specular:0xffd080}),
+    wood:pbr("wood",1,{color:0x5a4034,side:T.DoubleSide}),
+    leather:pbr("leather",1,{color:0xc89a80,normalScale:new T.Vector2(1.4,1.4)}),
+    leather2:pbr("leather",1,{color:0x8a7064}),
+    brass:new T.MeshStandardMaterial({color:0xb08a40,metalness:0.9,roughness:0.35}),
     dress:new T.MeshPhongMaterial({color:0x14141c,shininess:10}),
     apron:new T.MeshPhongMaterial({color:0xd8d2c4,shininess:5}),
     face:new T.MeshPhongMaterial({color:0xf2ece2,shininess:20,emissive:0x221c18}),
@@ -81,7 +86,17 @@ export function build3D(){
     glowY:new T.MeshBasicMaterial({color:0xffc070}),
     dark:new T.MeshPhongMaterial({color:0x0c0907}),
   };
-  for(const k of ["wall","floor","carpet","ceil","leather","leather2"]) M[k].map.colorSpace=T.SRGBColorSpace;
+  // 壁：上は緑に染めた花柄の紋織、下は腰板。u=1mで一巡り、v=天井高3.2m
+  { const imgs=["floral_diff","floral_nor","panel_diff","panel_nor"].map(n=>{ const im=new Image(); im.src=`./tex/${n}.jpg`; return im; });
+    Promise.all(imgs.map(im=>im.decode())).then(()=>{ const mk=(top,bot,tint)=>{ const c=document.createElement("canvas"); c.width=c.height=1024; const g=c.getContext("2d"), wy=Math.round(1024*(1-0.9/3.2));
+        for(let x=0;x<3;x++) for(let y=0;y*320<wy;y++) g.drawImage(top,x*1024/3,y*320,1024/3,320);
+        if(tint){ g.globalCompositeOperation="multiply"; g.fillStyle=tint; g.fillRect(0,0,1024,wy); g.globalCompositeOperation="source-over"; }
+        for(let x=0;x<3;x++) g.drawImage(bot,0,0,1024,768,x*1024/3,wy,1024/3,1024-wy);
+        g.fillStyle=tint?"#2a1608":"#8080ff"; g.fillRect(0,wy-6,1024,8); const t=new T.CanvasTexture(c); t.wrapS=t.wrapT=T.RepeatWrapping; t.anisotropy=4; return t; };
+      const d=mk(imgs[0],imgs[2],"#46704c"); d.colorSpace=T.SRGBColorSpace; M.wall.map=d; M.wall.normalMap=mk(imgs[1],imgs[3],null); M.wall.needsUpdate=true; }).catch(()=>{}); }
+  for(const k of ["wall","ceil"]) M[k].map.colorSpace=T.SRGBColorSpace;
+  // 写真の部屋から拾った、ごく弱い映り込み（革の艶と真鍮のため）
+  new HDRLoader().load("./tex/studio.hdr",h=>{ const pm=new T.PMREMGenerator(ren); scene.environment=pm.fromEquirectangular(h).texture; scene.environmentIntensity=0.05; h.dispose(); pm.dispose(); });
   // 床・壁・天井を、マス目から組む
   const G=()=>({p:[],n:[],u:[]});
   // 面の表は法線の側に揃える（上から覗く時、手前の壁と天井は裏向きになって消える）
@@ -217,7 +232,7 @@ export function autoStep(wx,wz,rush){ if(S.state!=="walk"||W.arrived) return;
   const y0=floorAt(W.x,W.z), fx=Math.sin(W.yaw)*0.5, fz=Math.cos(W.yaw)*0.5;
   let moved=false; for(const [mx,mz] of [[fx,fz],[fx,0],[0,fz]]){ if(Math.hypot(mx,mz)<0.2) continue; if(canStand(W.x+mx,W.z+mz,y0)){ W.x+=mx; W.z+=mz; moved=true; break; } }
   if(moved){ legThud(); if(!W.said.first){ W.said.first=1; insert("legs",1.0); leatherSquish(0.3,0.8); } }
-  else { thump(0.5); woodKnock(0.8); leatherSquish(0.25,0.4); if(S.t-(W.bumpT||-9)>6){ W.bumpT=S.t; insert("legs",0.5); } if(!W.said.bump){ W.said.bump=1; say("（ごつり、と何かに当たった）",true); } }
+  else { thump(0.4); if(!play("bump",0.9,0.95+Math.random()*0.1)) woodKnock(0.8); leatherSquish(0.25,0.4); if(S.t-(W.bumpT||-9)>6){ W.bumpT=S.t; insert("legs",0.5); } if(!W.said.bump){ W.said.bump=1; say("（ごつり、と何かに当たった）",true); } }
   if(rush){ creak(); scrape(0.2); heard(); W.wob=Math.min(1.2,W.wob+0.5); } else W.wob=Math.min(1.2,W.wob+0.32);
   arriveCheck(); }
 export function arriveCheck(){ if(cellAt(W.x,W.z)==="D"&&!W.arrived){ W.arrived=true; S.sus*=0.5; say("（書斎の扉の前に、辿り着いた。私は、元の椅子に戻った）"); wfade.style.opacity=1; setTimeout(()=>{ const d=W.done; hideWalk(); d&&d(); },2600); } }
@@ -230,15 +245,16 @@ export function startWalk(done){
   Object.assign(W,{on:true,done,x:START.x,z:START.z,yaw:START.yaw,px:START.x,pz:START.z,pyaw:START.yaw,vx:START.x,vz:START.z,vyaw:START.yaw,last:0,lastT:-9,moveT:-9,wob:0,lift:0,side:0,q:0,inK:0,
     notice:0,noticeP:null,insT:0,insK:"",insD:1,nStep:0,stepT:0,cam:null,camId:"",mapYaw:0,litPass:0,povT:0,povP:null,povCd:6,grace:2,arrived:false,said:{},idle:0,hint:0,cue:false});
   PATROLS.forEach((P,k)=>{ Object.assign(P,{x:P.route[P.i][0],z:P.route[P.i][1],dir:1,wait:k===0?3:1,yaw:0,lyaw:0,st:0,alert:null,q:0}); P.i=Math.min(P.i+1,P.route.length-1); });
+  if(!W.clock){ const k=play("clock",0,1,0,true); if(k) W.clock=k; }
   walkResize(); wc.hidden=false; seamEl.hidden=false; wfade.style.opacity=0; document.body.classList.add("walking"); S.state="walk"; S.sitter=null; S.blobs=[]; S.w=0;
   $("bb").innerHTML='じっとする<small>押している間 / Space</small>';
   say("そろり、そろり。……足音がしたら、ただの椅子に戻るのです。"); }
-export function hideWalk(){ if(!W.on&&wc.hidden) return; W.on=false; wc.hidden=true; seamEl.hidden=true; wfade.style.opacity=0; document.body.classList.remove("walking");
+export function hideWalk(){ if(!W.on&&wc.hidden) return; W.on=false; if(W.clock){ try{ W.clock.s.stop(); }catch(e){} W.clock=null; } wc.hidden=true; seamEl.hidden=true; wfade.style.opacity=0; document.body.classList.remove("walking");
   $("bl").innerHTML=BTN.bl; $("bb").innerHTML=BTN.bb; $("br").innerHTML=BTN.br; bb.classList.remove("cue"); }
 export function legThud(){ thump(0.25); woodKnock(0.4); W.nStep=(W.nStep||0)+1; if(W.nStep%3===0) leatherSquish(0.1,0.4); }
 // 寄りの差し込み：ここぞという一瞬だけ、椅子の脚や革に寄る
 export function insert(kind,dur){ W.insK=kind; W.insT=dur; W.insD=dur; }
-export function stepAt(dist,pan){ const c=A.ctx; if(!c) return; const s=c.createBufferSource(); s.buffer=A.brown; const f=c.createBiquadFilter(); f.type="lowpass"; f.frequency.value=380;
+export function stepAt(dist,pan){ if(play(Math.random()<0.5?"maidstep1":"maidstep2",1.1/(1+dist*0.45),0.9+Math.random()*0.15,pan)) return; const c=A.ctx; if(!c) return; const s=c.createBufferSource(); s.buffer=A.brown; const f=c.createBiquadFilter(); f.type="lowpass"; f.frequency.value=380;
   const g=c.createGain(); g.gain.setValueAtTime(0.7/(1+dist*0.55),c.currentTime); g.gain.exponentialRampToValueAtTime(0.001,c.currentTime+0.1); s.connect(f).connect(g);
   if(c.createStereoPanner){ const p=c.createStereoPanner(); p.pan.value=clamp(pan,-1,1); g.connect(p).connect(A.master); } else g.connect(A.master); s.start(); s.stop(c.currentTime+0.15); }
 export function canStand(x,z,y0){ for(const [ox,oz] of [[0.27,0.27],[-0.27,0.27],[0.27,-0.27],[-0.27,-0.27],[0,0]]){ const px=x+ox,pz=z+oz, c=cellAt(px,pz); if(c==="#") return false; if(Math.abs(floorOf(c,px,pz)-y0)>0.4) return false;
@@ -279,6 +295,9 @@ export function walkUpdate(dt){
   W.wob=Math.max(0,W.wob-dt*(S.hold?3.2:0.55)); W.lift=Math.max(0,W.lift-dt*3.5); W.idle+=dt; W.grace-=dt; W.povCd-=dt;
   const k=Math.min(1,dt*9); W.px+=(W.x-W.px)*k; W.pz+=(W.z-W.pz)*k; let dy=((W.yaw-W.pyaw)%(Math.PI*2)+Math.PI*3)%(Math.PI*2)-Math.PI; W.pyaw+=dy*k;
   if(S.state==="walk"&&!W.arrived) for(const P of PATROLS) patrolUpdate(P,dt);
+  // 広間の大時計：近づくほど、秒を刻む音が大きくなる
+  if(!W.clock&&A.smp&&A.smp.clock){ W.clock=play("clock",0,1,0,true); }
+  if(W.clock){ const d=Math.hypot(W.px-16.3,W.pz-7.5)+Math.abs(floorAt(W.px,W.pz))*1.5; W.clock.g.gain.value=0.5/(1+d*d*0.08); }
   // 指の向きを、いまの視点から屋敷の向きへ直す。押している間は視点が切り替わっても向きを保つ
   { const m=Math.hypot(stick.x,stick.y); W.stepT-=dt;
     if(!stick.on||m<0.2) W.mapYaw=W.camYaw||0;

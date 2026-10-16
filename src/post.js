@@ -37,7 +37,7 @@ const TIERS = {
   high: { maxScale: 1.5,  ao: true,  bloom: true, smaa: true,  shadow: 1024 },
 };
 
-const EXPOSURE = Number(new URLSearchParams(location.search).get("exp")) || 3.6;
+const EXPOSURE = Number(new URLSearchParams(location.search).get("exp")) || 3.0;
 const NOPOST = new URLSearchParams(location.search).get("post") === "0";
 export function makePost(ren, scene, cam){
   const tier = pickTier(), T = TIERS[tier];
