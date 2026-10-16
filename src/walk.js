@@ -205,7 +205,14 @@ export function build3D(){
     const lg=new T.Sprite(glowM); lg.scale.set(0.5,0.5,1); lg.position.copy(lamp.position); g.add(lg);
     for(const m of [skirt,torso,head]) m.castShadow=true;
     const sl=new T.SpotLight(0xffc27a,3.2*Math.PI,10,0.52,0.45,1.3); sl.castShadow=true; sl.shadow.mapSize.set(512,512); sl.shadow.camera.near=0.3; sl.shadow.bias=-0.002; scene.add(sl); scene.add(sl.target);
-    scene.add(g); P.g=g; P.sl=sl; P.lampPos=new T.Vector3(); }
+    scene.add(g); P.g=g; P.sl=sl; P.lampPos=new T.Vector3(); P.lamp=[lamp,lg]; }
+  // 陶器人形の女中（Blenderで台本から組んだもの）が届いたら、円柱の女中と差し替える。灯りは右手に提げ直す
+  { const porc=new T.MeshStandardMaterial({color:0xf0ebe2,roughness:0.22}), eye=new T.MeshStandardMaterial({color:0x050505,roughness:0.05}), lip=new T.MeshStandardMaterial({color:0x7a0c10,roughness:0.3});
+    const MM={porcelain:porc,dress:M.dress,apron:M.apron,hair:M.hair,eye,lip}; M.porc=porc;
+    new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).load("./models/maid.glb",gl=>{ for(const P of PATROLS){ const g=P.g;
+      for(const c of [...g.children]) if(!P.lamp.includes(c)) g.remove(c);
+      const m=gl.scene.clone(true); m.rotation.y=Math.PI; m.traverse(o=>{ if(o.isMesh){ o.castShadow=true; o.receiveShadow=true; o.material=MM[o.material.name]||M.dress; } }); g.add(m);
+      P.head=m.getObjectByName("head"); for(const l of P.lamp) l.position.set(-0.17,0.84,0.37); } }); }
   const post=makePost(ren,scene,cam); window.__post=post;
   const key=new T.PointLight(0xffd2a0,0,3,1.5); scene.add(key); // 寄りの時だけ灯す、人形劇の手持ちの明かり
   R3={T,scene,ren,cam,me,M,post,key}; window.__R3=R3; W.built=true; walkResize(); }
@@ -301,8 +308,10 @@ export function patrolUpdate(P,dt){ const T=R3.T;
   let da=((P.tyaw-P.lyaw)%(Math.PI*2)+Math.PI*3)%(Math.PI*2)-Math.PI; P.lyaw+=clamp(da,-dt*2.6,dt*2.6);
   // 姿は12コマで刻む
   P.q+=dt; if(P.q>=1/12){ P.q-=1/12; const y=floorAt(P.x,P.z), bob=P.wait>0?0:Math.abs(Math.sin(S.t*7))*0.03; P.g.position.set(P.x+jit(0.006),y+bob,P.z+jit(0.006)); P.g.rotation.set(jit(0.012),P.lyaw+jit(0.02),(P.wait>0?0:(Math.floor(S.t*2.6)%2?0.035:-0.035))+jit(0.012));
-    P.sl.intensity=3.2*Math.PI*(0.92+Math.random()*0.14); }
-  const y=floorAt(P.x,P.z); P.lampPos.set(P.x+Math.sin(P.lyaw)*0.36+Math.cos(P.lyaw)*0.18,y+1.05,P.z+Math.cos(P.lyaw)*0.36-Math.sin(P.lyaw)*0.18);
+    P.sl.intensity=3.2*Math.PI*(0.92+Math.random()*0.14);
+    // 見咎める時は、首をかしげる
+    if(P.head){ const want=W.noticeP===P?0.38:0; P.head.rotation.z+=(want-P.head.rotation.z)*0.5; } }
+  const y=floorAt(P.x,P.z); P.lampPos.set(P.x+Math.sin(P.lyaw)*0.37-Math.cos(P.lyaw)*0.17,y+0.9,P.z+Math.cos(P.lyaw)*0.37+Math.sin(P.lyaw)*0.17);
   P.sl.position.copy(P.lampPos); P.sl.target.position.set(P.x+Math.sin(P.lyaw)*4,y,P.z+Math.cos(P.lyaw)*4); }
 export function walkUpdate(dt){
   if(!R3){ return; }
