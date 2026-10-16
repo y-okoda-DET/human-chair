@@ -212,9 +212,9 @@ addEventListener("resize",()=>{ if(W.on) walkResize(); });
 export const BTN={bl:$("bl").innerHTML,bb:$("bb").innerHTML,br:$("br").innerHTML};
 // 定点の視点：斜め上から箱庭を覗く。どこでも同じ向きから覗くので、指の向きが入れ替わらない。
 // 天井と手前の壁は上から透けて消える。廊下と階段では、向きを保ったまま椅子に合わせて滑る
-// 高さは ?view=high|mid|low で見比べられる（既定は mid）
+// 高さは ?view=high|mid|low で見比べられる（既定は low）
 const VIEWS={high:{back:7.0,up:8.4},mid:{back:7.8,up:6.0},low:{back:8.2,up:4.0}};
-const VIEW={dx:Math.SQRT1_2,dz:Math.SQRT1_2,...(VIEWS[new URLSearchParams(location.search).get("view")]||VIEWS.mid)};
+const VIEW={dx:Math.SQRT1_2,dz:Math.SQRT1_2,...(VIEWS[new URLSearchParams(location.search).get("view")]||VIEWS.low)};
 const oblique=(id,x,y,z)=>({id,p:[x-VIEW.dx*VIEW.back,y+VIEW.up,z-VIEW.dz*VIEW.back],l:[x,y,z]});
 export function camFor(x,z){ const c=cellAt(x,z);
   if(c==="R") return oblique("R",4.2,0,4.2);
@@ -240,11 +240,12 @@ export function arriveCheck(){ if(cellAt(W.x,W.z)==="D"&&!W.arrived){ W.arrived=
 // 人形の手ぶれ：こまごとに、ほんの僅か位置と角度が揺らぐ
 const jit=a=>(Math.random()-0.5)*2*a;
 export const START={x:3.2,z:4.1,yaw:Math.PI/2};
+export const PARDON=2; // 置き場の外で、動かずにいて見逃される回数
 export const NOTICE=1.3; // 女中が立ち止まってから、見咎めるまでの秒
 export function startWalk(done){
   if(!W.built) build3D();
   Object.assign(W,{on:true,done,x:START.x,z:START.z,yaw:START.yaw,px:START.x,pz:START.z,pyaw:START.yaw,vx:START.x,vz:START.z,vyaw:START.yaw,last:0,lastT:-9,moveT:-9,wob:0,lift:0,side:0,q:0,inK:0,
-    notice:0,noticeP:null,insT:0,insK:"",insD:1,nStep:0,stepT:0,cam:null,camId:"",mapYaw:0,litPass:0,povT:0,povP:null,povCd:6,grace:2,arrived:false,said:{},idle:0,hint:0,cue:false});
+    notice:0,noticeP:null,pardon:0,pardonCd:0,pardonLit:false,insT:0,insK:"",insD:1,nStep:0,stepT:0,cam:null,camId:"",mapYaw:0,litPass:0,povT:0,povP:null,povCd:6,grace:2,arrived:false,said:{},idle:0,hint:0,cue:false});
   PATROLS.forEach((P,k)=>{ Object.assign(P,{x:P.route[P.i][0],z:P.route[P.i][1],dir:1,wait:k===0?3:1,yaw:0,lyaw:0,st:0,alert:null,q:0}); P.i=Math.min(P.i+1,P.route.length-1); });
   if(!W.clock){ const k=play("clock",0,1,0,true); if(k) W.clock=k; }
   walkResize(); wc.hidden=false; seamEl.hidden=false; wfade.style.opacity=0; document.body.classList.add("walking"); S.state="walk"; S.sitter=null; S.blobs=[]; S.w=0;
@@ -293,7 +294,7 @@ export function patrolUpdate(P,dt){ const T=R3.T;
   P.sl.position.copy(P.lampPos); P.sl.target.position.set(P.x+Math.sin(P.lyaw)*4,y,P.z+Math.cos(P.lyaw)*4); }
 export function walkUpdate(dt){
   if(!R3){ return; }
-  W.wob=Math.max(0,W.wob-dt*(S.hold?3.2:0.55)); W.lift=Math.max(0,W.lift-dt*3.5); W.idle+=dt; W.grace-=dt; W.povCd-=dt;
+  W.wob=Math.max(0,W.wob-dt*(S.hold?3.2:0.55)); W.lift=Math.max(0,W.lift-dt*3.5); W.idle+=dt; W.grace-=dt; W.povCd-=dt; W.pardonCd-=dt;
   const k=Math.min(1,dt*9); W.px+=(W.x-W.px)*k; W.pz+=(W.z-W.pz)*k; let dy=((W.yaw-W.pyaw)%(Math.PI*2)+Math.PI*3)%(Math.PI*2)-Math.PI; W.pyaw+=dy*k;
   if(S.state==="walk"&&!W.arrived) for(const P of PATROLS) patrolUpdate(P,dt);
   // 広間の大時計：近づくほど、秒を刻む音が大きくなる
@@ -309,7 +310,13 @@ export function walkUpdate(dt){
   // 立ち止まっている間に収まれば「気のせい」、収まらなければ露見
   if(S.state==="walk"&&!W.arrived&&W.grace<=0){ let lit=null, near=false;
     for(const P of PATROLS){ if(seesChair(P)){ lit=P; break; } const d=Math.hypot(P.x-W.px,P.z-W.pz); if(d<7&&Math.abs(floorAt(P.x,P.z)-floorAt(W.px,W.pz))<1.7) near=true; }
-    const spot=inPlace(), moving=S.t-W.moveT<0.4||W.wob>0.45, odd=!spot||moving;
+    const spot=inPlace(), moving=S.t-W.moveT<0.4||W.wob>0.45;
+    // 置き場の外でも、動かずにいれば二度までは見逃される。三度目からは立ち止まって見咎める
+    // 一度見逃されたら、その灯りから外れるまでは同じ見逃しが続く
+    if(lit) W.pardonCd=1; if(W.pardonCd<=0) W.pardonLit=false;
+    if(lit&&!spot&&!moving&&!W.noticeP&&!W.pardonLit&&W.pardon<PARDON){ W.pardon++; W.pardonLit=true; W.litPass=0; W.povCd=Math.max(W.povCd,14); W.povP=lit; W.povT=1.7;
+      say(W.pardon===1?"……あら、こんな所に椅子が。":"……また、椅子。誰が動かすのかしら。"); leatherSquish(0.2,0.5); }
+    const odd=moving||(!spot&&!W.pardonLit);
     if(lit&&odd){ if(!W.noticeP){ W.noticeP=lit; say("あら……？"); thump(0.7); leatherSquish(0.4,0.9); insert("back",0.75); }
       W.notice+=dt; if(W.notice>NOTICE){ walkCaught(W.noticeP,moving?"……椅子が、歩いている。":"……こんな所に、椅子なんて。"); return; } }
     else if(W.noticeP){ W.notice-=dt*0.8; if(W.notice<=0){ const P=W.noticeP; W.notice=0; W.noticeP=null; P.alert=null; W.litPass=0;
