@@ -1,5 +1,4 @@
 import * as THREE from "three";
-import { HDRLoader } from "three/examples/jsm/loaders/HDRLoader.js";
 import { makePost } from "./post.js";
 import { A, creak, leatherSquish, noiseBurst, play, scrape, thump, woodKnock } from "./audio.js";
 import { $, S, bb, say } from "./state.js";
@@ -96,7 +95,7 @@ export function build3D(){
       const d=mk(imgs[0],imgs[2],"#46704c"); d.colorSpace=T.SRGBColorSpace; M.wall.map=d; M.wall.normalMap=mk(imgs[1],imgs[3],null); M.wall.needsUpdate=true; }).catch(()=>{}); }
   for(const k of ["wall","ceil"]) M[k].map.colorSpace=T.SRGBColorSpace;
   // 写真の部屋から拾った、ごく弱い映り込み（革の艶と真鍮のため）
-  new HDRLoader().load("./tex/studio.hdr",h=>{ const pm=new T.PMREMGenerator(ren); scene.environment=pm.fromEquirectangular(h).texture; scene.environmentIntensity=0.05; h.dispose(); pm.dispose(); });
+  TL.load("./tex/studio.jpg",h=>{ h.colorSpace=T.SRGBColorSpace; h.mapping=T.EquirectangularReflectionMapping; const pm=new T.PMREMGenerator(ren); scene.environment=pm.fromEquirectangular(h).texture; scene.environmentIntensity=0.12; h.dispose(); pm.dispose(); });
   // 床・壁・天井を、マス目から組む
   const G=()=>({p:[],n:[],u:[]});
   // 面の表は法線の側に揃える（上から覗く時、手前の壁と天井は裏向きになって消える）
