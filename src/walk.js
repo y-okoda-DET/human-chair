@@ -71,10 +71,10 @@ export function build3D(){
     const orm=ld("orm"); return new T.MeshStandardMaterial({map:ld("diff",true),normalMap:ld("nor"),roughnessMap:orm,aoMap:orm,aoMapIntensity:0.8,roughness:1,metalness:0,...opt}); };
   const M={
     wall:new T.MeshStandardMaterial({map:wallT,side:T.FrontSide,roughness:0.9}),
-    floor:pbr("parquet",1,{color:0x6e5444,normalScale:new T.Vector2(0.8,0.8)}),
-    carpet:pbr("carpet",2,{color:0xd07070}),
+    floor:pbr("parquet",1,{color:0x6e5444,envMapIntensity:0.15,normalScale:new T.Vector2(0.8,0.8)}),
+    carpet:pbr("carpet",2,{color:0xd07070,envMapIntensity:0.2}),
     ceil:new T.MeshPhongMaterial({map:ceilT,side:T.FrontSide}),
-    wood:pbr("wood",1,{color:0x5a4034,side:T.DoubleSide}),
+    wood:pbr("wood",1,{color:0x5a4034,envMapIntensity:0.25,side:T.DoubleSide}),
     leather:pbr("leather",1,{color:0xc89a80,normalScale:new T.Vector2(1.4,1.4)}),
     leather2:pbr("leather",1,{color:0x8a7064}),
     brass:new T.MeshStandardMaterial({color:0xb08a40,metalness:0.9,roughness:0.35}),
@@ -94,8 +94,8 @@ export function build3D(){
         g.fillStyle=tint?"#2a1608":"#8080ff"; g.fillRect(0,wy-6,1024,8); const t=new T.CanvasTexture(c); t.wrapS=t.wrapT=T.RepeatWrapping; t.anisotropy=4; return t; };
       const d=mk(imgs[0],imgs[2],"#46704c"); d.colorSpace=T.SRGBColorSpace; M.wall.map=d; M.wall.normalMap=mk(imgs[1],imgs[3],null); M.wall.needsUpdate=true; }).catch(()=>{}); }
   for(const k of ["wall","ceil"]) M[k].map.colorSpace=T.SRGBColorSpace;
-  // 写真の部屋から拾った、ごく弱い映り込み（革の艶と真鍮のため）
-  TL.load("./tex/studio.jpg",h=>{ h.colorSpace=T.SRGBColorSpace; h.mapping=T.EquirectangularReflectionMapping; const pm=new T.PMREMGenerator(ren); scene.environment=pm.fromEquirectangular(h).texture; scene.environmentIntensity=0.12; h.dispose(); pm.dispose(); });
+  // 写真の部屋から拾った映り込み。革の艶と真鍮だけに使う（床や木に掛けると灰色に浮く）
+  TL.load("./tex/studio.jpg",h=>{ h.colorSpace=T.SRGBColorSpace; h.mapping=T.EquirectangularReflectionMapping; const pm=new T.PMREMGenerator(ren); const env=pm.fromEquirectangular(h).texture; for(const [k,i] of [["brass",0.8],["leather",0.12],["leather2",0.08]]){ M[k].envMap=env; M[k].envMapIntensity=i; M[k].needsUpdate=true; } h.dispose(); pm.dispose(); });
   // 床・壁・天井を、マス目から組む
   const G=()=>({p:[],n:[],u:[]});
   // 面の表は法線の側に揃える（上から覗く時、手前の壁と天井は裏向きになって消える）
@@ -196,7 +196,7 @@ export function build3D(){
     scene.add(g); P.g=g; P.sl=sl; P.lampPos=new T.Vector3(); }
   const post=makePost(ren,scene,cam); window.__post=post;
   const key=new T.PointLight(0xffd2a0,0,3,1.5); scene.add(key); // 寄りの時だけ灯す、人形劇の手持ちの明かり
-  R3={T,scene,ren,cam,me,M,post,key}; W.built=true; walkResize(); }
+  R3={T,scene,ren,cam,me,M,post,key}; window.__R3=R3; W.built=true; walkResize(); }
 
 export function walkResize(){ if(R3){ R3.ren.setSize(innerWidth,innerHeight,false); R3.cam.aspect=innerWidth/innerHeight; R3.cam.updateProjectionMatrix(); R3.post.resize(); }
   // 椅子の中：革の継ぎ目に開いた細い隙間
