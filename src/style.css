@@ -6,7 +6,7 @@ body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--mincho);ove
 #w[hidden],#seam[hidden]{display:none}
 #seam{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;opacity:0}
 #wfade{position:fixed;inset:0;background:#000;opacity:0;pointer-events:none;transition:opacity .2s}
-body.walking #bal,body.walking #lung,body.walking #lunglabel{visibility:hidden}
+body.walking #bal,body.walking #lung,body.walking #lunglabel,body.walking #sus,body.walking #suslabel{visibility:hidden}
 .hud{position:fixed;left:0;right:0;pointer-events:none}
 #sus{top:0;height:5px;background:rgba(255,255,255,.07)}
 #sus i{display:block;height:100%;width:0;background:var(--red);transition:width .25s}

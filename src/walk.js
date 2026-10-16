@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import { makePost } from "./post.js";
 import { A, creak, noiseBurst, thump } from "./audio.js";
-import { $, S, addSus, bb, say } from "./state.js";
+import { $, S, bb, say } from "./state.js";
 
 // ---------- 椅子歩き（第三夜の頭、一度きり。屋敷の一角を3Dで歩く） ----------
 // 1マス=約1m。R応接間 F表の廊下 H階段の広間 s大階段 U二階の廊下 D書斎の前 S使用人の通路 B裏階段
@@ -31,8 +31,9 @@ export const cellAt=(x,z)=>{ const r=MAP[Math.floor(z)]; return r?(r[Math.floor(
 export const floorOf=(c,x,z)=>c==="U"||c==="D"?3:c==="s"?clamp((z-2)/6*3,0,3):c==="B"?clamp((x-9)/8*3,0,3):0;
 export const ceilOf=(c,x,z)=>"HsUD".includes(c)?6.4:c==="B"?floorOf(c,x,z)+3.2:3.2;
 export const floorAt=(x,z)=>floorOf(cellAt(x,z),x,z);
-// 置き場所：ここで止まっていれば、照らされても「ただの椅子」
+// 置き場所：絨毯に椅子の脚の凹みが残っている所。ここで止まっていれば、照らされても「ただの椅子」
 export const SPOTS=[
+  {x:3.2,z:4.1,l:null},{x:2.5,z:1.7,l:null},{x:6.2,z:2.4,l:null},{x:3.4,z:5.4,l:null},
   {x:10.1,z:3.42,l:"飾り棚の陰に"},{x:13.2,z:4.58,l:"長椅子の並びに"},{x:14.2,z:3.42,l:"飾り棚の陰に"},
   {x:16.45,z:6.5,l:"大時計の脇に"},{x:17.6,z:1.42,l:"椅子の列に"},
   {x:18.42,z:11.6,l:"飾り棚の陰に"},{x:21.58,z:12.1,l:"椅子の隣に"},{x:21.58,z:16.6,l:"花台の脇に"}];
@@ -152,6 +153,14 @@ export function build3D(){
   for(const [x,y,z,c,i,d] of LIGHTS){ const l=new T.PointLight(c,i*Math.PI,d,1.6); l.position.set(x,y,z); scene.add(l); }
   for(const [x,y,z,s] of [[1.08,2.1,2.4,0.7],[1.08,2.1,4.8,0.7],[10.2,2.1,3.06,0.6],[13.4,2.1,4.94,0.6],[21.92,2.2,4.5,0.7],[18.08,4.9,12.5,0.6],[21.92,4.9,15.5,0.6],[2.5,3.0,12.5,0.5]]) glow(x,y,z,s);
   { const ch=new T.Group(); for(let i=0;i<6;i++){ const a=i/6*Math.PI*2; const b=new T.Mesh(new T.SphereGeometry(0.04,6,5),M.glowY); b.position.set(Math.cos(a)*0.4,0,Math.sin(a)*0.4); ch.add(b); } ch.position.set(18.2,5.2,4.6); scene.add(ch); glow(18.2,5.2,4.6,2.2); glow(3.5,2.7,3.6,1.6); glow(20,4.1,18.9,1.4); }
+  // 置き場の凹み：長く椅子が置かれていた跡。脚の四つの窪みと、毛足の潰れた四角
+  { const dentT=tex(128,128,(g,w,h)=>{ g.clearRect(0,0,w,h);
+      { const gr=g.createRadialGradient(64,64,20,64,64,62); gr.addColorStop(0,"rgba(0,0,0,.45)"); gr.addColorStop(0.7,"rgba(0,0,0,.3)"); gr.addColorStop(1,"rgba(0,0,0,0)"); g.fillStyle=gr; g.fillRect(14,16,100,96); }
+      g.strokeStyle="rgba(240,210,165,.16)"; g.lineWidth=2; g.strokeRect(20,22,88,84);
+      for(const [x,y] of [[28,30],[100,30],[28,98],[100,98]]){ const gr=g.createRadialGradient(x,y,0,x,y,13); gr.addColorStop(0,"rgba(0,0,0,.95)"); gr.addColorStop(0.5,"rgba(0,0,0,.85)"); gr.addColorStop(0.62,"rgba(245,215,170,.55)"); gr.addColorStop(0.8,"rgba(245,215,170,.25)"); gr.addColorStop(1,"rgba(0,0,0,0)"); g.fillStyle=gr; g.fillRect(x-14,y-14,28,28); } });
+    dentT.colorSpace=T.SRGBColorSpace;
+    const dm=new T.MeshPhongMaterial({map:dentT,transparent:true,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-2,shininess:2});
+    for(const sp of SPOTS){ const d=new T.Mesh(new T.PlaneGeometry(0.8,0.8),dm); d.rotation.x=-Math.PI/2; d.position.set(sp.x,floorAt(sp.x,sp.z)+0.006,sp.z); d.receiveShadow=true; scene.add(d); } }
   // 自分の椅子
   const me=makeChair(M.leather); scene.add(me);
   // 見回りの女中たち
@@ -184,10 +193,11 @@ export function walkResize(){ if(R3){ R3.ren.setSize(innerWidth,innerHeight,fals
 addEventListener("resize",()=>{ if(W.on) walkResize(); });
 export const BTN={bl:$("bl").innerHTML,bb:$("bb").innerHTML,br:$("br").innerHTML};
 export const START={x:3.2,z:4.1,yaw:Math.PI/2};
+export const NOTICE=1.3; // 女中が立ち止まってから、見咎めるまでの秒
 export function startWalk(done){
   if(!W.built) build3D();
   Object.assign(W,{on:true,done,x:START.x,z:START.z,yaw:START.yaw,px:START.x,pz:START.z,pyaw:START.yaw,vx:START.x,vz:START.z,vyaw:START.yaw,last:0,lastT:-9,moveT:-9,wob:0,lift:0,side:0,q:0,inK:0,
-    misplaced:0,expose:0,litPass:0,povT:0,povP:null,povCd:6,drag:0,grace:2,arrived:false,said:{},idle:0,hint:0,cue:false});
+    notice:0,noticeP:null,litPass:0,povT:0,povP:null,povCd:6,grace:2,arrived:false,said:{},idle:0,hint:0,cue:false});
   PATROLS.forEach((P,k)=>{ Object.assign(P,{x:P.route[P.i][0],z:P.route[P.i][1],dir:1,wait:k===0?3:1,yaw:0,lyaw:0,st:0,alert:null,q:0}); P.i=Math.min(P.i+1,P.route.length-1); });
   walkResize(); wc.hidden=false; seamEl.hidden=false; wfade.style.opacity=0; document.body.classList.add("walking"); S.state="walk"; S.sitter=null; S.blobs=[]; S.w=0;
   $("bl").innerHTML='左の脚<small>←</small>'; $("br").innerHTML='右の脚<small>→</small>'; $("bb").innerHTML='じっとする<small>押している間 / Space</small>';
@@ -200,17 +210,17 @@ export function stepAt(dist,pan){ const c=A.ctx; if(!c) return; const s=c.create
   if(c.createStereoPanner){ const p=c.createStereoPanner(); p.pan.value=clamp(pan,-1,1); g.connect(p).connect(A.master); } else g.connect(A.master); s.start(); s.stop(c.currentTime+0.15); }
 export function canStand(x,z,y0){ for(const [ox,oz] of [[0.27,0.27],[-0.27,0.27],[0.27,-0.27],[-0.27,-0.27],[0,0]]){ const px=x+ox,pz=z+oz, c=cellAt(px,pz); if(c==="#") return false; if(Math.abs(floorOf(c,px,pz)-y0)>0.4) return false;
     for(const o of OBST) if(px>o[0]&&px<o[2]&&pz>o[1]&&pz<o[3]) return false; } return true; }
-export function inPlace(){ if(cellAt(W.x,W.z)==="R") return {l:null}; for(const s of SPOTS) if(Math.hypot(s.x-W.x,s.z-W.z)<0.62) return s; return null; }
+export function inPlace(){ for(const s of SPOTS) if(Math.hypot(s.x-W.x,s.z-W.z)<0.62) return s; return null; }
 export function heard(){ for(const P of PATROLS){ const d=Math.hypot(P.x-W.x,P.z-W.z); if(d<6.5&&Math.abs(floorAt(P.x,P.z)-floorAt(W.x,W.z))<2) P.alert={x:W.x,z:W.z,t:2.6}; } }
-export function walkStep(side){ if(S.state!=="walk"||W.arrived||W.drag>0) return; if(S.hold) return;
+export function walkStep(side){ if(S.state!=="walk"||W.arrived) return; if(S.hold) return;
   const now=S.t; W.moveT=now; W.idle=0;
-  if(now-W.lastT<0.22){ W.wob=Math.min(1.2,W.wob+0.5); creak(); addSus(4,"きしみ"); heard(); W.lastT=now; W.last=side; return; }
+  if(now-W.lastT<0.22){ W.wob=Math.min(1.2,W.wob+0.5); creak(); heard(); W.lastT=now; W.last=side; return; }
   W.lastT=now; W.side=side; W.lift=1;
   if(side===W.last){ W.yaw+=side<0?Math.PI/6:-Math.PI/6; W.wob=Math.min(1.2,W.wob+0.2); legThud(); W.last=0; return; } // 同じ脚を続けると、その場で向きを変える
   W.last=side; W.wob=Math.min(1.2,W.wob+0.32);
   const fx=Math.sin(W.yaw), fz=Math.cos(W.yaw), y0=floorAt(W.x,W.z), nx=W.x+fx*0.5, nz=W.z+fz*0.5;
   if(canStand(nx,nz,y0)){ W.x=nx; W.z=nz; legThud(); }
-  else { creak(); thump(0.5); addSus(5,"きしみ"); heard(); W.wob=Math.min(1.2,W.wob+0.4); if(!W.said.bump){ W.said.bump=1; say("（ごつり、と何かに当たった）",true); } }
+  else { creak(); thump(0.5); heard(); W.wob=Math.min(1.2,W.wob+0.4); if(!W.said.bump){ W.said.bump=1; say("（ごつり、と何かに当たった）",true); } }
   if(cellAt(W.x,W.z)==="D"&&!W.arrived){ W.arrived=true; S.sus*=0.5; say("（書斎の扉の前に、辿り着いた。私は、元の椅子に戻った）"); wfade.style.opacity=1; setTimeout(()=>{ const d=W.done; hideWalk(); d&&d(); },2600); } }
 export function seesChair(P){ const d=Math.hypot(W.px-P.x,W.pz-P.z); if(d>8.5) return false; const fy=floorAt(P.x,P.z), cy=floorAt(W.px,W.pz); if(Math.abs(fy-cy)>1.7) return false;
   const a=Math.atan2(W.px-P.x,W.pz-P.z); let da=Math.abs(((a-P.lyaw)%(Math.PI*2)+Math.PI*3)%(Math.PI*2)-Math.PI); if(d>0.9&&da>0.5) return false;
@@ -235,21 +245,20 @@ export function walkUpdate(dt){
   W.wob=Math.max(0,W.wob-dt*(S.hold?3.2:0.55)); W.lift=Math.max(0,W.lift-dt*3.5); W.idle+=dt; W.grace-=dt; W.povCd-=dt;
   const k=Math.min(1,dt*9); W.px+=(W.x-W.px)*k; W.pz+=(W.z-W.pz)*k; let dy=((W.yaw-W.pyaw)%(Math.PI*2)+Math.PI*3)%(Math.PI*2)-Math.PI; W.pyaw+=dy*k;
   if(S.state==="walk"&&!W.arrived) for(const P of PATROLS) patrolUpdate(P,dt);
-  // 見つかるかどうか：動いているのを見られたら露見。場違いな所で照らされたら、一度目は引き戻され、二度目は露見
-  if(S.state==="walk"&&!W.arrived&&W.drag<=0&&W.grace<=0){ let lit=null, near=false;
+  // 見つかるかどうか：決まりは一つ。灯りに照らされた時、椅子が置き場（凹みの上）に静かに収まっていなければ、女中は立ち止まる。
+  // 立ち止まっている間に収まれば「気のせい」、収まらなければ露見
+  if(S.state==="walk"&&!W.arrived&&W.grace<=0){ let lit=null, near=false;
     for(const P of PATROLS){ if(seesChair(P)){ lit=P; break; } const d=Math.hypot(P.x-W.px,P.z-W.pz); if(d<7&&Math.abs(floorAt(P.x,P.z)-floorAt(W.px,W.pz))<1.7) near=true; }
-    const spot=inPlace(), moving=S.t-W.moveT<0.4||W.wob>0.45;
-    if(lit){ if(moving){ walkCaught(lit,"……椅子が、歩いている。"); return; }
-      if(!spot){ W.expose+=dt; if(W.expose>0.6){ W.expose=0;
-          if(W.misplaced>=1){ walkCaught(lit,"……この椅子、また動いている。"); return; }
-          W.misplaced=1; W.drag=2.4; W.dragP=lit; say("あら、この椅子、こんな所にあったかしら。（応接間まで、引き摺り戻された）"); noiseBurst(A.brown,1.4,0.5,"lowpass",240,1); } }
-      else { W.litPass+=dt; if(W.litPass>0.9&&W.povCd<=0){ W.litPass=0; W.povCd=14; W.povP=lit; W.povT=1.7; say(["……ただの椅子ね。","（灯りが、椅子の上を素通りした）","この屋敷の椅子は、どれも陰気だこと。"][Math.floor(Math.random()*3)]); } } }
-    else { W.expose=Math.max(0,W.expose-dt); W.litPass=Math.max(0,W.litPass-dt*0.5); }
-    const cue=!!lit||near; if(cue!==W.cue){ W.cue=cue; bb.classList.toggle("cue",cue); if(cue&&!W.said.near){ W.said.near=1; say("（灯りが、こちらへ来る）"); } } }
-  // 引き摺り戻し
-  if(W.drag>0){ W.drag-=dt; wfade.style.opacity=W.drag>1.2?String(Math.min(1,(2.4-W.drag)/0.6)):String(Math.max(0,W.drag/1.2));
-    if(W.drag<=1.2&&!W.dragged){ W.dragged=true; Object.assign(W,{x:START.x,z:START.z,yaw:START.yaw,px:START.x,pz:START.z,pyaw:START.yaw,vx:START.x,vz:START.z,vyaw:START.yaw}); W.grace=3; }
-    if(W.drag<=0){ W.drag=0; wfade.style.opacity=0; } }
+    const spot=inPlace(), moving=S.t-W.moveT<0.4||W.wob>0.45, odd=!spot||moving;
+    if(lit&&odd){ if(!W.noticeP){ W.noticeP=lit; say("あら……？"); thump(0.7); noiseBurst(A.brown,0.5,0.35,"lowpass",200,1); }
+      W.notice+=dt; if(W.notice>NOTICE){ walkCaught(W.noticeP,moving?"……椅子が、歩いている。":"……こんな所に、椅子なんて。"); return; } }
+    else if(W.noticeP){ W.notice-=dt*0.8; if(W.notice<=0){ const P=W.noticeP; W.notice=0; W.noticeP=null; P.alert=null; W.litPass=0;
+        if(lit){ W.povCd=14; W.povP=P; W.povT=1.7; } say("……気のせいね。"); } }
+    else if(lit){ W.litPass+=dt; if(W.litPass>0.9&&W.povCd<=0){ W.litPass=0; W.povCd=14; W.povP=lit; W.povT=1.7; say(["……ただの椅子ね。","（灯りが、椅子の上を素通りした）","この屋敷の椅子は、どれも陰気だこと。"][Math.floor(Math.random()*3)]); } }
+    else W.litPass=Math.max(0,W.litPass-dt*0.5);
+    // 立ち止まった女中は、灯りを椅子へ向けたまま動かない
+    if(W.noticeP) W.noticeP.alert={x:W.px,z:W.pz,t:0.5};
+    const cue=!!lit||near||!!W.noticeP; if(cue!==W.cue){ W.cue=cue; bb.classList.toggle("cue",cue); if(cue&&!W.said.near){ W.said.near=1; say("（灯りが、こちらへ来る）"); } } }
   // 置き場所に身を寄せた時だけ、ひと言
   if(S.state==="walk"&&W.idle>1.2){ const s=inPlace(); if(s&&s.l&&!W.said[s.l+s.x]){ W.said[s.l+s.x]=1; say(`（${s.l}、身を寄せた）`,true); } }
   if(S.state==="walk"&&W.idle>6&&!W.said.rule){ W.said.rule=1; say("椅子の在るべき所に在る限り、誰も椅子などに目を留めはしませぬ。"); }
