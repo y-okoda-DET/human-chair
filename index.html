@@ -198,13 +198,13 @@ const SITTERS={
   drunk:{name:"酔った客",kg:78,dur:26,fidget:0.12,listen:[],pat:"wide",jit:0.02,snore:true,
    lines:[[2,"はあ、良い椅子だ、これは。"],[7,"……。"],[12,"（寝息が聞こえる）"],[18,"（いびきに変った）"],[23,"（いびきは止まぬ）"]],
    frag:"酒と煙草の匂い。寝息はやがて鼾となり、重みはただの重みとなりました。"},
-  merchant:{name:"異国の商人",kg:98,dur:22,fidget:0.45,listen:[8,16],pat:"wide",jit:0.03,
+  merchant:{name:"異国の商人",kg:98,dur:20,fidget:0.4,listen:[9],pat:"wide",jit:0.03,
    lines:[[1.5,"（異国の言葉で、何か笑っている）"],[5,"（葉巻の煙が、革に沁みて来る）"],[11,"……ヘン、ナ、椅子。アタタカイ。"],[14,"（膝を叩いて、大笑いした）"],[19,"（葉巻を、肘掛けで揉み消した）"]],
    frag:"葉巻と香水の匂い。肘掛けで葉巻を揉み消されました。あれは、熱うございました。"},
   dog:{name:"屋敷の犬",kg:9,dur:13,fidget:1.4,listen:[5,9],pat:"paws",jit:0.09,dog:true,
    lines:[[0.5,"（何やら小さな獣が飛び乗った）"],[3,"（しきりに嗅ぎ廻っている）"],[8,"（爪が革を掻く）"],[11,"（興が尽きたらしい）"]],
    frag:"濡れた鼻先。四つ足の小さな重み。革を二度ほど掻きました。"},
-  magician:{name:"白塗りの奇術師",kg:60,dur:20,fidget:0.9,listen:[4,10,15],pat:"narrow",jit:0.06,
+  magician:{name:"白塗りの奇術師",kg:60,dur:20,fidget:0.7,listen:[5,13],pat:"narrow",jit:0.06,
    lines:[[1,"皆様、これなる椅子に、種も仕掛けもございません。"],[3,"（客席が、どっと沸いた）"],[8,"（奇術師が、椅子の背を叩いて廻る）"],[13,"……おや。仕掛けが、ございましたかな。"],[17,"（客席は、また沸いた）"]],
    frag:"白粉と汗の匂い。椅子の背を三度叩かれました。仕掛けがある、と、あの男だけが知っておりました。"},
   geisha:{name:"芸妓",kg:44,dur:14,fidget:0.5,listen:[6],pat:"narrow",jit:0.04,
@@ -246,7 +246,7 @@ reset();
 function say(t,dim){ sub.textContent=t; sub.classList.toggle("dim",!!dim); }
 function spot(x,y){ S.spots.push({x,y,l:1}); if(S.spots.length>6) S.spots.shift(); }
 const susEl=$("sus"), balI=$("bal").firstElementChild, bb=$("bb");
-function addSus(v,reason){ if(S.night===0) v=Math.round(v*0.6); S.sus=Math.min(100,S.sus+v); if(reason){ S.log[reason]=(S.log[reason]||0)+1; susEl.classList.add("flash"); setTimeout(()=>susEl.classList.remove("flash"),600); } }
+function addSus(v,reason){ v=Math.round(v*[0.6,0.8,1][S.night]); S.sus=Math.min(100,S.sus+v); if(reason){ S.log[reason]=(S.log[reason]||0)+1; susEl.classList.add("flash"); setTimeout(()=>susEl.classList.remove("flash"),600); } }
 
 const INTRO=[
   ["私は、醜い男でございます。",3.6],
@@ -279,7 +279,7 @@ function retryNight(){ audioInit(); const n=S.night, snap=S.snap; reset(); S.see
 function beginSit(st){ S.sitter=st; S.ts=0; S.w=0; S.lineIdx=0; S.listen=null; S.fidgetT=0;
   S.targets=PATTERNS[st.pat].map(b=>b.slice()); S.blobs=S.targets.map(b=>[b[0],b[1],b[2],0]); sitThud(); if(!st.dog){ cloth(); spring(); } say(st.dog?"（何かが、ひらりと飛び乗った）":"（何者かが、どっかと腰を下ろした）"); }
 
-function endSit(){ S.frags.push(S.sitter.frag); S.seen.push(S.sitter); if(S.sitter.final){ S.sitter=null; S.w=0; S.state="between"; sitThud(); endNight(); return; } S.state="leave"; S.ts=0; say(S.sitter.dog?"（獣は降りて行った）":"（重みが、ふっと去った）",true); }
+function endSit(){ S.frags.push(S.sitter.frag); S.seen.push(S.sitter); S.sus*=0.7; if(S.sitter.final){ S.sitter=null; S.w=0; S.state="between"; sitThud(); endNight(); return; } S.state="leave"; S.ts=0; say(S.sitter.dog?"（獣は降りて行った）":"（重みが、ふっと去った）",true); }
 
 function finish(caught){ S.done=true; S.caught=caught; S.state="result";
   const n=new Set(S.seen.map(x=>x.name)).size; const heavy=S.seen.slice().sort((a,b)=>b.kg-a.kg)[0];
