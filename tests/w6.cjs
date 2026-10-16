@@ -10,7 +10,7 @@ const { chromium } = require('playwright');
   await p.waitForFunction(()=>window.__isu().state==='walk',null,{timeout:8000});
   const OUT=process.env.OUT||'.';
   const st=()=>p.evaluate(()=>{const W=window.__dbg.W,S=window.__isu(); return {t:+S.t.toFixed(2),state:S.state,x:+W.x.toFixed(2),z:+W.z.toFixed(2),notice:+W.notice.toFixed(2),noticing:!!W.noticeP,pov:+W.povCd.toFixed(1),sub:document.getElementById('sub').textContent}});
-  const setup=(x,z,yaw)=>p.evaluate(([x,z,yaw])=>{ const D=window.__dbg,W=D.W; D.tp(x,z,yaw); Object.assign(W,{grace:0,moveT:-9,wob:0,notice:0,noticeP:null,last:0,lastT:-9,povCd:0,povT:0});
+  const setup=(x,z,yaw)=>p.evaluate(([x,z,yaw])=>{ const D=window.__dbg,W=D.W; D.tp(x,z,yaw); Object.assign(W,{grace:0,moveT:-9,wob:0,notice:0,noticeP:null,last:0,lastT:-9,povCd:0,povT:0,pardon:2,pardonLit:false});
      const P=D.PATROLS[0]; Object.assign(P,{x:17.5,z:4,i:2,dir:1,wait:0,alert:null}); D.PATROLS[1].x=2.5;D.PATROLS[1].z=7.6; D.PATROLS[2].z=17; },[x,z,yaw]);
   const until=async(fn,s)=>{ const t0=await p.evaluate(()=>window.__isu().t); for(;;){ const r=await st(); if(fn(r)||r.t>t0+s) return r; await p.waitForTimeout(100);} };
   let r;
