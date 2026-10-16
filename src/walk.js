@@ -132,6 +132,20 @@ export function build3D(){
       if(f1-nf1>0.15||f2-nf2>0.15) rail(x1+dx*0.05,z1+dz*0.05,x2+dx*0.05,z2+dz*0.05,f1,f2,n);
       if(nc1<c1-0.05||nc2<c2-0.05) wall(gW,x1,z1,x2,z2,Math.max(nc1,f1),Math.max(nc2,f2),c1,c2,n,f1,f2); } }
   mk(gW0,M.wall); mk(gF0,M.floor); mk(gC0,M.ceil,false);
+  // 切り口：壁の外側（何もない所）を、模型の舞台のように低い天板で塞ぐ。部屋の縁には漆喰の切り口を一筋
+  { const CUT=0.3, gK=G(), gT=G(), H=MAP.length, Wd=MAP[0].length, solid=(x,z)=>cellAt(x+0.5,z+0.5)==="#";
+    const capY=(x,z)=>{ let f=-1; for(let dz=-1;dz<=1;dz++) for(let dx=-1;dx<=1;dx++){ const c=cellAt(x+dx+0.5,z+dz+0.5); if(c!=="#") f=Math.max(f,floorOf(c,x+dx+0.5,z+dz+0.5)); } return (f<0?0:f)+CUT; };
+    const Y={}; for(let z=-3;z<H+3;z++) for(let x=-3;x<Wd+3;x++) if(solid(x,z)) Y[x+","+z]=capY(x,z);
+    for(let z=-3;z<H+3;z++) for(let x=-3;x<Wd+3;x++){ const y=Y[x+","+z]; if(y===undefined) continue;
+      quad(gK,[x,y,z],[x+1,y,z],[x+1,y,z+1],[x,y,z+1],[0,1,0],[x/2,z/2],[(x+1)/2,z/2],[(x+1)/2,(z+1)/2],[x/2,(z+1)/2]);
+      for(const [dx,dz] of [[1,0],[-1,0],[0,1],[0,-1]]){ const ny=Y[(x+dx)+","+(z+dz)];
+        let x1,z1,x2,z2; if(dx===1){x1=x+1;z1=z;x2=x+1;z2=z+1;} else if(dx===-1){x1=x;z1=z;x2=x;z2=z+1;} else if(dz===1){x1=x;z1=z+1;x2=x+1;z2=z+1;} else {x1=x;z1=z;x2=x+1;z2=z;}
+        if(ny===undefined){ // 部屋に面する縁：天板の上に漆喰の帯
+          const ix=dx===0?0:-dx*0.09, iz=dz===0?0:-dz*0.09;
+          quad(gT,[x1,y+0.004,z1],[x2,y+0.004,z2],[x2+ix,y+0.004,z2+iz],[x1+ix,y+0.004,z1+iz],[0,1,0],[0,0],[1,0],[1,1],[0,1]); }
+        else if(ny<y-0.01) quad(gK,[x1,ny,z1],[x2,ny,z2],[x2,y,z2],[x1,y,z1],[dx,0,dz],[0,0],[1,0],[1,1],[0,1]); } }
+    mk(gK,new T.MeshStandardMaterial({color:0x1a120d,roughness:0.85,map:M.wood.map||null}));
+    mk(gT,new T.MeshStandardMaterial({color:0xcfc2a6,roughness:0.95})); }
   // 焼き込んだ部屋が届くまでの仮の面。届いたら隠す
   const fallback=[mk(bW,M.wall),mk(bF,M.floor),mk(bC,M.ceil,false)];
   if(new URLSearchParams(location.search).get("room")!=="0") new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).load(roomGlb,gl=>{ const lm=TL.load("./tex/room_lm.jpg",()=>{
@@ -145,8 +159,8 @@ export function build3D(){
   // 家具
   const box=(w,h,d,mat,x,y,z,ry=0,solid=true,cast=true)=>{ const m=new T.Mesh(new T.BoxGeometry(w,h,d),mat); m.position.set(x,y+h/2,z); m.rotation.y=ry; m.castShadow=cast; m.receiveShadow=true; scene.add(m);
     if(solid){ const hw=(Math.abs(Math.cos(ry))*w+Math.abs(Math.sin(ry))*d)/2, hd=(Math.abs(Math.sin(ry))*w+Math.abs(Math.cos(ry))*d)/2; OBST.push([x-hw,z-hd,x+hw,z+hd]); } return m; };
-  const cabinet=(x,z,ry)=>{ const y=floorAt(x,z); box(1.1,1.5,0.42,M.wood,x,y,z,ry); box(1.16,0.06,0.48,M.wood,x,y+1.5,z,ry,false);
-    const v=new T.Mesh(new T.SphereGeometry(0.13,10,8),M.brass); v.scale.y=1.5; v.position.set(x,y+1.72,z); scene.add(v); };
+  const PH={cab:[]}; const cabinet=(x,z,ry)=>{ const y=floorAt(x,z); const a=box(1.1,1.5,0.42,M.wood,x,y,z,ry), b=box(1.16,0.06,0.48,M.wood,x,y+1.5,z,ry,false);
+    const v=new T.Mesh(new T.SphereGeometry(0.13,10,8),M.brass); v.scale.y=1.5; v.position.set(x,y+1.72,z); scene.add(v); PH.cab.push({x,y,z,ry,m:[a,b,v]}); };
   const settee=(x,z,ry)=>{ const y=floorAt(x,z); box(1.5,0.42,0.6,M.leather2,x,y,z,ry); const b=box(1.5,0.55,0.14,M.leather2,x,y+0.42,z,ry,false); b.translateZ(-0.24); };
   // 椅子（自分も囮も同じ型。肘掛椅子の胴は人ひとり分）
   function makeChair(mat){ const g=new T.Group(), part=(w,h,d,x,y,z,m=mat)=>{ const p=new T.Mesh(new T.BoxGeometry(w,h,d),m); p.position.set(x,y,z); p.castShadow=true; p.receiveShadow=true; g.add(p); return p; };
@@ -169,7 +183,7 @@ export function build3D(){
   // 応接間：夜会の椅子が並ぶ
   for(const [x,z,ry,m] of [[1.6,1.6,Math.PI*0.25,1],[1.5,3.0,Math.PI/2,0],[1.5,5.6,Math.PI*0.75,1],[3.4,6.4,Math.PI,1],[5.3,6.4,Math.PI,0],[5.4,1.6,-Math.PI*0.2,1],[5.0,5.5,-Math.PI*0.8,1]]){
     const c=makeChair(m?M.leather2:M.leather); c.position.set(x,0,z); c.rotation.y=ry; scene.add(c); OBST.push([x-0.36,z-0.36,x+0.36,z+0.36]); }
-  { const t=new T.Mesh(new T.CylinderGeometry(0.55,0.55,0.06,20),M.wood); t.position.set(3.6,0.72,2.6); t.castShadow=true; scene.add(t); const p=new T.Mesh(new T.CylinderGeometry(0.06,0.18,0.72,8),M.wood); p.position.set(3.6,0.36,2.6); scene.add(p); OBST.push([3.05,2.05,4.15,3.15]); }
+  { const t=new T.Mesh(new T.CylinderGeometry(0.55,0.55,0.06,20),M.wood); t.position.set(3.6,0.72,2.6); t.castShadow=true; scene.add(t); PH.table=[t]; const p=new T.Mesh(new T.CylinderGeometry(0.06,0.18,0.72,8),M.wood); p.position.set(3.6,0.36,2.6); scene.add(p); PH.table.push(p); OBST.push([3.05,2.05,4.15,3.15]); }
   // 表の廊下
   cabinet(9.0,3.24,0); settee(12.0,4.68,Math.PI); cabinet(15.1,3.24,0);
   // 階段の広間：大時計と椅子の列
@@ -177,7 +191,7 @@ export function build3D(){
   for(const x of [16.8,18.4]){ const c=makeChair(M.leather2); c.position.set(x,0,1.42); scene.add(c); OBST.push([x-0.36,1.06,x+0.36,1.78]); }
   // 二階の廊下
   cabinet(18.24,10.5,Math.PI/2); { const c=makeChair(M.leather2); c.position.set(21.58,3,13.2); c.rotation.y=-Math.PI/2; scene.add(c); OBST.push([21.22,12.84,21.94,13.56]); }
-  { box(0.36,0.9,0.36,M.wood,21.6,3,17.5); const p=new T.Mesh(new T.SphereGeometry(0.3,8,6),new T.MeshPhongMaterial({color:0x1d2a14})); p.position.set(21.6,4.15,17.5); p.scale.y=1.4; scene.add(p); }
+  { const bx=box(0.36,0.9,0.36,M.wood,21.6,3,17.5); const p=new T.Mesh(new T.SphereGeometry(0.3,8,6),new T.MeshPhongMaterial({color:0x1d2a14})); p.position.set(21.6,4.15,17.5); p.scale.y=1.4; scene.add(p); PH.plant2=[bx,p]; }
   // 肖像画（白い顔だけが浮かぶ）
   const faceT=tex(128,160,(g,w,h)=>{ g.fillStyle="#120c08"; g.fillRect(0,0,w,h); const gr=g.createRadialGradient(64,66,4,64,70,46); gr.addColorStop(0,"#d9cfbf"); gr.addColorStop(1,"rgba(40,30,20,0)"); g.fillStyle=gr; g.beginPath(); g.ellipse(64,70,30,40,0,0,7); g.fill();
     g.fillStyle="#120c08"; g.beginPath(); g.ellipse(52,64,5,3,0,0,7); g.ellipse(76,64,5,3,0,0,7); g.fill(); g.fillRect(56,94,16,2); noise(g,w,h,20); });
@@ -235,10 +249,10 @@ export function build3D(){
     for(const a of [0,2.1,4.2]){ const arm=new T.Mesh(new T.CylinderGeometry(0.012,0.012,0.16,6),M.brass); arm.position.set(Math.cos(a)*0.08,0.3,Math.sin(a)*0.08); arm.rotation.z=Math.PI/2; arm.rotation.y=-a; cand.add(arm);
       const cd=new T.Mesh(new T.CylinderGeometry(0.014,0.014,0.12,8),M.apron); cd.position.set(Math.cos(a)*0.15,0.37,Math.sin(a)*0.15); cand.add(cd);
       const f=new T.Sprite(candleM); f.position.set(Math.cos(a)*0.15,0.45,Math.sin(a)*0.15); f.scale.set(0.12,0.16,1); cand.add(f); }
-    cand.position.set(3.6,0.75,2.6); scene.add(cand);
+    cand.position.set(3.6,0.75,2.6); scene.add(cand); PH.cand=cand;
     const cl=new T.PointLight(0xffb060,0.6*Math.PI,3.5,1.6); cl.position.set(3.6,1.3,2.6); scene.add(cl); FLICK.push(t=>{ cl.intensity=Math.PI*(0.55+0.08*Math.sin(t*11)+0.05*Math.random()); });
-    const pot=new T.Mesh(new T.CylinderGeometry(0.2,0.15,0.4,16),M.brass); pot.position.set(15.6,0.2,4.7); scene.add(pot);
-    for(let i=0;i<9;i++){ const a=i/9*Math.PI*2, lf=new T.Mesh(new T.PlaneGeometry(0.12,0.9),new T.MeshStandardMaterial({color:0x1e3018,side:T.DoubleSide,roughness:0.7})); lf.position.set(15.6+Math.cos(a)*0.18,0.75,4.7+Math.sin(a)*0.18); lf.rotation.set(0.5*Math.sin(a),-a,0.5*Math.cos(a)); scene.add(lf); }
+    const pot=new T.Mesh(new T.CylinderGeometry(0.2,0.15,0.4,16),M.brass); pot.position.set(15.6,0.2,4.7); scene.add(pot); PH.plant=[pot];
+    for(let i=0;i<9;i++){ const a=i/9*Math.PI*2, lf=new T.Mesh(new T.PlaneGeometry(0.12,0.9),new T.MeshStandardMaterial({color:0x1e3018,side:T.DoubleSide,roughness:0.7})); lf.position.set(15.6+Math.cos(a)*0.18,0.75,4.7+Math.sin(a)*0.18); lf.rotation.set(0.5*Math.sin(a),-a,0.5*Math.cos(a)); scene.add(lf); PH.plant.push(lf); }
     OBST.push([15.35,4.45,15.85,4.95]); }
   // 宙を舞う埃：灯りと月明かりの中で、ゆっくり漂う
   { const n=260, g=new T.BufferGeometry(), pos=new Float32Array(n*3); for(let i=0;i<n;i++){ const inR=i<160; pos[i*3]=inR?1.2+Math.random()*5.6:7+Math.random()*9; pos[i*3+1]=Math.random()*2.8; pos[i*3+2]=inR?1.2+Math.random()*5.6:3.1+Math.random()*1.8; }
@@ -253,14 +267,16 @@ export function build3D(){
   const glowT=tex(64,64,(g,w,h)=>{ const gr=g.createRadialGradient(32,32,0,32,32,32); gr.addColorStop(0,"rgba(255,225,170,1)"); gr.addColorStop(0.1,"rgba(255,190,110,.55)"); gr.addColorStop(0.35,"rgba(255,160,70,.14)"); gr.addColorStop(1,"rgba(255,150,60,0)"); g.fillStyle=gr; g.fillRect(0,0,w,h); });
   const glowM=new T.SpriteMaterial({map:glowT,blending:T.AdditiveBlending,depthWrite:false,fog:true,opacity:0.35});
   const glow=(x,y,z,s)=>{ s*=0.45; const sp=new T.Sprite(glowM); sp.position.set(x,y,z); sp.scale.set(s,s,1); scene.add(sp); const b=new T.Mesh(new T.SphereGeometry(0.035,6,5),M.glowY); b.position.set(x,y,z); scene.add(b); return sp; };
-  const LIGHTS=[[3.5,2.7,3.6,0xffa860,1.1,8],[11.5,2.5,4,0xff9a50,0.9,7],[18.2,5.2,4.6,0xffb070,1.4,11],[20,5.4,12,0xffa860,1.0,9],[2.5,2.9,12.5,0xd8c8a0,0.6,6],[20,4.4,18.4,0xffc080,1.2,5]];
-  for(const [x,y,z,c,i,d] of LIGHTS){ const l=new T.PointLight(c,i*Math.PI,d,1.6); l.position.set(x,y,z); scene.add(l); }
-  for(const [x,y,z,s] of [[1.08,2.1,2.4,0.7],[1.08,2.1,4.8,0.7],[10.2,2.1,3.06,0.6],[13.4,2.1,4.94,0.6],[21.92,2.2,4.5,0.7],[18.08,4.9,12.5,0.6],[21.92,4.9,15.5,0.6],[2.5,3.0,12.5,0.5]]) glow(x,y,z,s);
+  const LIGHTS=[[3.5,2.7,3.6,0xffa860,1.1,8],[11.5,2.5,4,0xff9a50,0.9,7],[18.2,5.2,4.6,0xffb070,1.8,11],[20,5.4,12,0xffa860,1.0,9],[2.5,2.9,12.5,0xd8c8a0,0.6,6],[20,4.4,18.4,0xffc080,1.2,5],[2.7,2.2,10,0xffa060,0.7,5],[12,3.3,15.6,0xffa060,0.8,6]];
+  // 場面ごとに一灯だけ影を落とす（全部に落とすと重い）
+  const SHL={R:0,F:1,H:2,U:3,S:6,B:7}, LOBJ=LIGHTS.map(([x,y,z,c,i,d])=>{ const l=new T.PointLight(c,i*Math.PI,d,1.6); l.position.set(x,y,z); l.shadow.mapSize.set(512,512); l.shadow.bias=-0.004; l.shadow.radius=3; l.shadow.camera.near=0.1; scene.add(l); return l; });
+  const shadowFor=id=>LOBJ.forEach((l,i)=>{ l.castShadow=SHL[id]===i; });
+  for(const [x,y,z,s] of [[4.4,2.1,6.92,0.7],[6.92,2.1,5.2,0.7],[10.2,2.1,4.94,0.6],[13.4,2.1,4.94,0.6],[21.92,2.2,4.5,0.7],[18.08,4.9,12.5,0.6],[21.92,4.9,15.5,0.6],[2.5,3.0,12.5,0.5],[2.94,2.2,10,0.5],[12,3.3,15.94,0.5]]) glow(x,y,z,s);
   { const brass=M.brass||M.wood; const chand=(x,y,z,top,r)=>{ const ch=new T.Group(); for(let i=0;i<6;i++){ const a=i/6*Math.PI*2; const b=new T.Mesh(new T.SphereGeometry(0.04,6,5),M.glowY); b.position.set(Math.cos(a)*r,0.06,Math.sin(a)*r); ch.add(b); const cup=new T.Mesh(new T.CylinderGeometry(0.035,0.02,0.06,8),brass); cup.position.set(Math.cos(a)*r,0,Math.sin(a)*r); ch.add(cup); }
       const ring=new T.Mesh(new T.TorusGeometry(r,0.018,6,24),brass); ring.rotation.x=Math.PI/2; ch.add(ring); const bowl=new T.Mesh(new T.SphereGeometry(0.12,10,8,0,Math.PI*2,Math.PI/2,Math.PI/2),brass); bowl.position.y=-0.02; ch.add(bowl);
       for(let i=0;i<3;i++){ const a=i/3*Math.PI*2, arm=new T.Mesh(new T.CylinderGeometry(0.008,0.008,r*1.1,4),brass); arm.position.set(Math.cos(a)*r/2,0.12,Math.sin(a)*r/2); arm.rotation.set(Math.sin(a)*1.1,0,-Math.cos(a)*1.1); ch.add(arm); }
-      const chain=new T.Mesh(new T.CylinderGeometry(0.01,0.01,top-y,4),brass); chain.position.y=(top-y)/2+0.2; ch.add(chain); ch.position.set(x,y,z); scene.add(ch); };
-    chand(18.2,5.2,4.6,6.4,0.4); chand(3.5,2.55,3.6,3.2,0.32); glow(18.2,5.2,4.6,2.2); glow(3.5,2.62,3.6,1.6); glow(20,4.1,18.9,1.4); }
+      const chain=new T.Mesh(new T.CylinderGeometry(0.01,0.01,top-y,4),brass); chain.position.y=(top-y)/2+0.2; ch.add(chain); ch.position.set(x,y,z); scene.add(ch); return ch; };
+    PH.chand=[chand(18.2,5.2,4.6,6.4,0.4),chand(3.5,2.55,3.6,3.2,0.32)]; glow(18.2,5.2,4.6,2.2); glow(3.5,2.62,3.6,1.6); glow(20,4.1,18.9,1.4); }
   // 置き場の凹み：長く椅子が置かれていた跡。脚の四つの窪みと、毛足の潰れた四角
   { const dentT=tex(128,128,(g,w,h)=>{ g.clearRect(0,0,w,h);
       { const gr=g.createRadialGradient(64,64,20,64,64,62); gr.addColorStop(0,"rgba(0,0,0,.45)"); gr.addColorStop(0.7,"rgba(0,0,0,.3)"); gr.addColorStop(1,"rgba(0,0,0,0)"); g.fillStyle=gr; g.fillRect(14,16,100,96); }
@@ -294,7 +310,23 @@ export function build3D(){
       P.head=m.getObjectByName("head"); for(const l of P.lamp) l.position.set(-0.17,0.84,0.37); } }); }
   const post=makePost(ren,scene,cam); window.__post=post;
   const key=new T.PointLight(0xffd2a0,0,3,1.5); scene.add(key); // 寄りの時だけ灯す、人形劇の手持ちの明かり
-  R3={T,scene,ren,cam,me,M,post,key,FLICK,MOTES}; window.__R3=R3; W.built=true; walkResize(); }
+  // 素材サイトの家具（Poly Haven, CC0）。届いたら仮の箱と差し替える
+  import("./props.js").then(({default:PR})=>{ const L=new GLTFLoader().setMeshoptDecoder(MeshoptDecoder), hide=a=>{ for(const m of [].concat(a||[])) m.visible=false; };
+    const put=(k,{x,y,z,ry=0,h,w,cast=true,solid=null},cb)=>L.load(PR[k],gl=>{ const o=gl.scene; o.traverse(m=>{ if(m.isMesh){ m.castShadow=cast; m.receiveShadow=true; if(m.material.map) m.material.map.anisotropy=4; } });
+        const bb=new T.Box3().setFromObject(o), sz=bb.getSize(new T.Vector3()), k2=h?h/sz.y:w/Math.max(sz.x,sz.z); o.scale.setScalar(k2);
+        const c=bb.getCenter(new T.Vector3()); const g=new T.Group(); o.position.set(-c.x*k2,-bb.min.y*k2,-c.z*k2); g.add(o); g.position.set(x,y,z); g.rotation.y=ry; scene.add(g); if(cb) cb(g); });
+    put("table",{x:3.6,y:0,z:2.6,w:1.1},()=>hide(PH.table));
+    put("cand",{x:3.6,y:0.75,z:2.6,h:0.5,cast:false},()=>{ PH.cand.children.forEach(c=>{ if(!c.isSprite) c.visible=false; }); PH.cand.children.filter(c=>c.isSprite).forEach((f,i)=>{ f.position.set((i-1)*0.17,0.52,0); f.scale.set(0.07,0.1,1); }); });
+    put("chand",{x:3.5,y:2.25,z:3.6,h:0.8,cast:false},()=>hide(PH.chand[1]));
+    put("chand",{x:18.2,y:4.55,z:4.6,h:1.2,cast:false},()=>hide(PH.chand[0]));
+    put("plant",{x:15.6,y:0,z:4.7,h:0.95},()=>hide(PH.plant));
+    put("plant",{x:21.6,y:3,z:17.5,h:1.05},()=>hide(PH.plant2));
+    for(const c of PH.cab){ put("cabinet",{x:c.x,y:c.y,z:c.z,ry:c.ry,w:1.15},()=>hide(c.m)); put("lamp",{x:c.x+0.3*Math.cos(c.ry),y:c.y+1.24,z:c.z-0.3*Math.sin(c.ry),h:0.42}); }
+    put("clock",{x:6.76,y:1.25,z:1.7,ry:-Math.PI/2,h:0.32});
+    put("frame2",{x:6.96,y:1.55,z:4.1,ry:-Math.PI/2,h:0.8,cast:false});
+    put("frame1",{x:5.7,y:1.6,z:6.97,ry:Math.PI,h:0.6,cast:false});
+    put("side",{x:1.45,y:0,z:4.3,h:0.68}); OBST.push([1.25,4.1,1.65,4.5]); });
+  R3={T,scene,ren,cam,me,M,post,key,FLICK,MOTES,shadowFor}; window.__R3=R3; W.built=true; walkResize(); }
 
 export function walkResize(){ if(R3){ R3.ren.setSize(innerWidth,innerHeight,false); R3.cam.aspect=innerWidth/innerHeight; R3.cam.updateProjectionMatrix(); R3.post.resize(); }
   // 椅子の中：革の継ぎ目に開いた細い隙間
@@ -313,14 +345,14 @@ export const BTN={bl:$("bl").innerHTML,bb:$("bb").innerHTML,br:$("br").innerHTML
 // 高さは ?view=high|mid|low で見比べられる（既定は low）
 const VIEWS={high:{back:7.0,up:8.4},mid:{back:7.8,up:6.0},low:{back:8.2,up:4.0}};
 const VIEW={dx:Math.SQRT1_2,dz:Math.SQRT1_2,...(VIEWS[new URLSearchParams(location.search).get("view")]||VIEWS.low)};
-const oblique=(id,x,y,z)=>({id,p:[x-VIEW.dx*VIEW.back,y+VIEW.up,z-VIEW.dz*VIEW.back],l:[x,y,z]});
+const oblique=(id,x,y,z,k=1)=>({id,p:[x-VIEW.dx*VIEW.back*k,y+VIEW.up*k,z-VIEW.dz*VIEW.back*k],l:[x,y,z]});
 export function camFor(x,z){ const c=cellAt(x,z);
   if(c==="R") return oblique("R",4.2,0,4.2);
-  if(c==="F") return oblique("F",clamp(x,9,14.5),0,4.0);
+  if(c==="F") return oblique("F",clamp(x,9,14.5)+1.3,0.4,5.3,0.82);
   if(c==="H"||c==="s") return oblique("H",19,0.8,4.6);
   if((c==="U"||c==="D")&&!(z>=15&&z<16&&x<18)) return oblique("U",20,3,clamp(z,10.5,17.2));
-  if(c==="S"&&z<15) return oblique("S",2.5,0,clamp(z,8.5,14.5));
-  const cx=clamp(x,4,16.5); return oblique("B",cx,floorAt(cx,15.5),15.5); }
+  if(c==="S"&&z<15) return oblique("S",3.2,0.3,clamp(z,8.5,14.5)+0.7,0.8);
+  const cx=clamp(x,4,16.5); return oblique("B",cx+0.7,floorAt(cx,15.5)+0.3,16.2,0.8); }
 // 指で示した向きへ、脚を交互に出してよちよち進む。強く押せば急ぎ足になり、椅子が鳴く
 export const stick={x:0,y:0,on:false};
 export function autoStep(wx,wz,rush){ if(S.state!=="walk"||W.arrived) return;
@@ -449,7 +481,7 @@ export function walkRender(dt){ const cam=R3.cam, T=R3.T; if(R3.syncWall) R3.syn
   const want=S.hold&&S.state==="walk"?1:0; W.inK+=(want-W.inK)*Math.min(1,dt*(want?2.6:5));
   // 画面は12コマで刻む：コマが替わる時だけ視点を動かし、描く
   const fr=Math.floor(S.t*12), tick=fr!==W.frame; W.frame=fr;
-  const cf=camFor(W.px,W.pz); if(!W.cam||cf.id!==W.camId){
+  const cf=camFor(W.px,W.pz); if(!W.cam||cf.id!==W.camId){ R3.shadowFor&&R3.shadowFor(cf.id);
     if(W.camId&&S.state==="walk"&&!W.arrived&&!W.noticeP&&!(CHECK&&CHECK.id===cf.id)){ CHECK={id:cf.id,x:W.x,z:W.z,yaw:W.yaw,pardon:W.pardon}; }
     W.camId=cf.id; W.cam={p:new T.Vector3(...cf.p),l:new T.Vector3(...cf.l)}; }
   else if(tick){ W.cam.p.lerp(new T.Vector3(...cf.p),0.25); W.cam.l.lerp(new T.Vector3(...cf.l),0.25); }
