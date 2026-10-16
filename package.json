@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "models": "python3 -c \"import sys; sys.argv=['x','--','blender/chair-raw.glb']; exec(open('blender/chair.py').read())\" && gltf-transform meshopt blender/chair-raw.glb public/models/chair.glb"
   },
   "dependencies": {
     "n8ao": "2.0.1",
@@ -14,6 +15,7 @@
     "three": "0.186.1"
   },
   "devDependencies": {
+    "@gltf-transform/cli": "^4.1.1",
     "vite": "8.3.1"
   }
 }

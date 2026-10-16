@@ -1,4 +1,6 @@
 import * as THREE from "three";
+import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { MeshoptDecoder } from "three/examples/jsm/libs/meshopt_decoder.module.js";
 import { makePost } from "./post.js";
 import { A, creak, leatherSquish, noiseBurst, play, scrape, thump, woodKnock } from "./audio.js";
 import { $, S, bb, say } from "./state.js";
@@ -75,7 +77,7 @@ export function build3D(){
     carpet:pbr("carpet",2,{color:0xd07070,envMapIntensity:0.2}),
     ceil:new T.MeshPhongMaterial({map:ceilT,side:T.FrontSide}),
     wood:pbr("wood",1,{color:0x5a4034,envMapIntensity:0.25,side:T.DoubleSide}),
-    leather:pbr("leather",1,{color:0xc89a80,normalScale:new T.Vector2(1.4,1.4)}),
+    leather:pbr("leather",1,{color:0xa87460,normalScale:new T.Vector2(1.4,1.4)}),
     leather2:pbr("leather",1,{color:0x8a7064}),
     brass:pbr("brass",1,{metalness:1,color:0xe0a85a}),
     dress:new T.MeshPhongMaterial({color:0x14141c,shininess:10}),
@@ -138,7 +140,17 @@ export function build3D(){
     part(0.11,0.24,0.6,-0.36,0.64,0.02); part(0.11,0.24,0.6,0.36,0.64,0.02);
     const legs=[]; for(const [lx,lz] of [[-0.28,0.26],[0.28,0.26],[-0.28,-0.26],[0.28,-0.26]]){ const l=part(0.07,0.34,0.07,lx,0.17,lz,M.wood); legs.push(l); }
     for(let i=0;i<9;i++){ const s=new T.Mesh(new T.SphereGeometry(0.012,5,4),M.brass); s.position.set(-0.3+i*0.075,0.43,0.365); g.add(s); }
-    g.userData.legs=legs; g.userData.back=back; return g; }
+    for(const l of legs) l.userData.y0=l.position.y;
+    g.userData.legs=legs; g.userData.back=back; g.userData.mat=mat; CHAIRS.push(g); return g; }
+  // 作り込んだ肘掛椅子（Blenderで台本から組んだもの）が届いたら、箱の椅子と差し替える
+  const CHAIRS=[];
+  new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).load("./models/chair.glb",gl=>{ const src=gl.scene;
+    for(const g of CHAIRS){ const leather=g.userData.mat; g.clear(); const m=src.clone(true); m.rotation.y=Math.PI; m.scale.setScalar(0.85);
+      m.traverse(o=>{ if(o.isMesh){ o.castShadow=true; o.receiveShadow=true; const n=o.material.name; o.material=n==="wood"?M.wood:n==="brass"?M.brass:leather; } });
+      g.add(m); const by=n=>m.getObjectByName(n);
+      // 脚の並びは箱の椅子と同じ：左前・右前・左後・右後（模型は向きを返しているので左右が入れ替わる）
+      g.userData.legs=["leg_FR","leg_FL","leg_BR","leg_BL"].map(by); for(const l of g.userData.legs) l.userData.y0=l.position.y;
+      g.userData.back=by("back"); } });
   // 応接間：夜会の椅子が並ぶ
   for(const [x,z,ry,m] of [[1.6,1.6,Math.PI*0.25,1],[1.5,3.0,Math.PI/2,0],[1.5,5.6,Math.PI*0.75,1],[3.4,6.4,Math.PI,1],[5.3,6.4,Math.PI,0],[5.4,1.6,-Math.PI*0.2,1],[5.0,5.5,-Math.PI*0.8,1]]){
     const c=makeChair(m?M.leather2:M.leather); c.position.set(x,0,z); c.rotation.y=ry; scene.add(c); OBST.push([x-0.36,z-0.36,x+0.36,z+0.36]); }
@@ -333,7 +345,7 @@ export function walkUpdate(dt){
   W.q+=dt; if(W.q>=1/12){ W.q-=1/12; W.vx+=(W.x-W.vx)*0.6; W.vz+=(W.z-W.vz)*0.6; let d2=((W.yaw-W.vyaw)%(Math.PI*2)+Math.PI*3)%(Math.PI*2)-Math.PI; W.vyaw+=d2*0.6;
     const me=R3.me, sway=Math.sin(S.t*9)*W.wob*0.08, y=floorAt(W.vx,W.vz); me.position.set(W.vx+jit(0.004),y+W.lift*0.06,W.vz+jit(0.004)); me.rotation.set(jit(0.008),W.vyaw+W.side*W.lift*0.14+jit(0.012),W.side*W.lift*0.09+sway+jit(0.008));
     { const br=S.hold||W.noticeP?0:Math.sin(S.t*1.7)*Math.min(1,W.idle), bk=me.userData.back; bk.scale.set(1+br*0.02,1+br*0.025,1+br*0.22); }
-    me.userData.legs.forEach((l,i)=>{ const left=i%2===0; l.position.y=0.17+((W.side<0)===left&&i<2?W.lift*0.08:0); }); }
+    me.userData.legs.forEach((l,i)=>{ const left=i%2===0; l.position.y=l.userData.y0+((W.side<0)===left&&i<2?W.lift*0.08:0); }); }
   walkRender(dt); }
 export function walkRender(dt){ const cam=R3.cam, T=R3.T;
   const fx=Math.sin(W.pyaw), fz=Math.cos(W.pyaw), fy=floorAt(W.px,W.pz);
@@ -348,7 +360,7 @@ export function walkRender(dt){ const cam=R3.cam, T=R3.T;
   const e=W.inK*W.inK*(3-2*W.inK);
   if(W.insT>0&&S.state==="walk"){ W.insT-=dt; const k=1-W.insT/W.insD, sd=W.insK==="legs"?1:-1;
     const rx=Math.cos(W.pyaw)*sd, rz=-Math.sin(W.pyaw)*sd;
-    if(W.insK==="legs"){ cam.position.set(W.px+rx*1.25+fx*0.5,fy+0.14,W.pz+rz*1.25+fz*0.5); cam.lookAt(W.px,fy+0.22+k*0.04,W.pz); cam.fov=40; }
+    if(W.insK==="legs"){ cam.position.set(W.px+rx*1.1+fx*0.55,fy+0.06,W.pz+rz*1.1+fz*0.55); cam.lookAt(W.px,fy+0.14+k*0.03,W.pz); cam.fov=44; }
     else { cam.position.set(W.px+fx*1.6+rx*0.45,fy+0.5,W.pz+fz*1.6+rz*0.45); cam.lookAt(W.px,fy+0.7,W.pz); cam.fov=40-k*8; }
     R3.key.position.set(cam.position.x+rx*0.4,cam.position.y+0.5,cam.position.z+rz*0.4); R3.key.intensity=2.2*Math.PI;
     seamEl.style.opacity=0; cam.updateProjectionMatrix(); R3.me.visible=true; R3.post.render(dt,S.t,tick||STEP12===false); return; }
