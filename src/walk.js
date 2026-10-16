@@ -77,7 +77,7 @@ export function build3D(){
     wood:pbr("wood",1,{color:0x5a4034,envMapIntensity:0.25,side:T.DoubleSide}),
     leather:pbr("leather",1,{color:0xc89a80,normalScale:new T.Vector2(1.4,1.4)}),
     leather2:pbr("leather",1,{color:0x8a7064}),
-    brass:pbr("brass",1,{metalness:1}),
+    brass:pbr("brass",1,{metalness:1,color:0xe0a85a}),
     dress:new T.MeshPhongMaterial({color:0x14141c,shininess:10}),
     apron:new T.MeshPhongMaterial({color:0xd8d2c4,shininess:5}),
     face:new T.MeshPhongMaterial({color:0xf2ece2,shininess:20,emissive:0x221c18}),
