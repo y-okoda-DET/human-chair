@@ -49,7 +49,7 @@ export function tex(w,h,draw,rep){ const c=document.createElement("canvas"); c.w
   const t=new THREE.CanvasTexture(c); t.wrapS=t.wrapT=THREE.RepeatWrapping; t.anisotropy=8; if(rep) t.repeat.set(rep[0],rep[1]); return t; }
 export function noise(g,w,h,a){ const d=g.getImageData(0,0,w,h); for(let i=0;i<d.data.length;i+=4){ const n=(Math.random()-0.5)*a; d.data[i]+=n; d.data[i+1]+=n; d.data[i+2]+=n; } g.putImageData(d,0,0); }
 export function build3D(){
-  const T=THREE, scene=new T.Scene(); scene.background=new T.Color(0x050302); scene.fog=new T.FogExp2(0x060403,0.085);
+  const T=THREE, scene=new T.Scene(); scene.background=new T.Color(0x050302); scene.fog=new T.FogExp2(0x060403,0.04);
   const ren=new T.WebGLRenderer({canvas:wc,antialias:false,stencil:false,depth:false,powerPreference:"high-performance"}); ren.shadowMap.enabled=true; ren.shadowMap.type=T.PCFSoftShadowMap;
   const cam=new T.PerspectiveCamera(62,1,0.05,60);
   // 質感：壁紙と腰板、寄木の床、天井、赤い絨毯、革
@@ -66,10 +66,10 @@ export function build3D(){
   const ceilT=tex(64,64,(g,w,h)=>{ g.fillStyle="#17110d"; g.fillRect(0,0,w,h); noise(g,w,h,10); });
   const leatherT=tex(128,128,(g,w,h)=>{ g.fillStyle="#4a2116"; g.fillRect(0,0,w,h); for(let i=0;i<500;i++){ g.strokeStyle=`rgba(0,0,0,${Math.random()*0.08})`; g.lineWidth=1; g.beginPath(); const x=Math.random()*w,y=Math.random()*h; g.moveTo(x,y); g.lineTo(x+Math.random()*10-5,y+Math.random()*10-5); g.stroke(); } noise(g,w,h,8); });
   const M={
-    wall:new T.MeshPhongMaterial({map:wallT,side:T.DoubleSide,shininess:4}),
+    wall:new T.MeshPhongMaterial({map:wallT,side:T.FrontSide,shininess:4}),
     floor:new T.MeshPhongMaterial({map:floorT,shininess:30,specular:0x332211}),
     carpet:new T.MeshPhongMaterial({map:carpetT,shininess:2}),
-    ceil:new T.MeshPhongMaterial({map:ceilT,side:T.DoubleSide}),
+    ceil:new T.MeshPhongMaterial({map:ceilT,side:T.FrontSide}),
     wood:new T.MeshPhongMaterial({color:0x3b2414,shininess:40,specular:0x2a1a10,side:T.DoubleSide}),
     leather:new T.MeshPhongMaterial({map:leatherT,color:0xffffff,shininess:55,specular:0x3a2a20}),
     leather2:new T.MeshPhongMaterial({map:leatherT,color:0xb8a090,shininess:40,specular:0x2a2018}),
@@ -84,7 +84,10 @@ export function build3D(){
   for(const k of ["wall","floor","carpet","ceil","leather","leather2"]) M[k].map.colorSpace=T.SRGBColorSpace;
   // 床・壁・天井を、マス目から組む
   const G=()=>({p:[],n:[],u:[]});
-  const quad=(Gx,a,b,c,d,n,ua,ub,uc,ud)=>{ for(const [v,uv] of [[a,ua],[b,ub],[c,uc],[a,ua],[c,uc],[d,ud]]){ Gx.p.push(...v); Gx.n.push(...n); Gx.u.push(...uv); } };
+  // 面の表は法線の側に揃える（上から覗く時、手前の壁と天井は裏向きになって消える）
+  const quad=(Gx,a,b,c,d,n,ua,ub,uc,ud)=>{ const e1=[b[0]-a[0],b[1]-a[1],b[2]-a[2]], e2=[c[0]-a[0],c[1]-a[1],c[2]-a[2]], cr=[e1[1]*e2[2]-e1[2]*e2[1],e1[2]*e2[0]-e1[0]*e2[2],e1[0]*e2[1]-e1[1]*e2[0]];
+    const flip=cr[0]*n[0]+cr[1]*n[1]+cr[2]*n[2]<0, vs=flip?[[a,ua],[d,ud],[c,uc],[a,ua],[c,uc],[b,ub]]:[[a,ua],[b,ub],[c,uc],[a,ua],[c,uc],[d,ud]];
+    for(const [v,uv] of vs){ Gx.p.push(...v); Gx.n.push(...n); Gx.u.push(...uv); } };
   const mk=(Gx,mat,rs=true)=>{ const g=new T.BufferGeometry(); g.setAttribute("position",new T.Float32BufferAttribute(Gx.p,3)); g.setAttribute("normal",new T.Float32BufferAttribute(Gx.n,3)); g.setAttribute("uv",new T.Float32BufferAttribute(Gx.u,2));
     const m=new T.Mesh(g,mat); m.receiveShadow=rs; scene.add(m); return m; };
   const gW=G(), gF=G(), gC=G(), gCar=G(), gR=G();
@@ -148,7 +151,7 @@ export function build3D(){
   scene.add(new T.HemisphereLight(0x302438,0x0a0604,0.5*Math.PI));
   const glowT=tex(64,64,(g,w,h)=>{ const gr=g.createRadialGradient(32,32,0,32,32,32); gr.addColorStop(0,"rgba(255,220,160,1)"); gr.addColorStop(0.25,"rgba(255,170,80,.45)"); gr.addColorStop(1,"rgba(255,150,60,0)"); g.fillStyle=gr; g.fillRect(0,0,w,h); });
   const glowM=new T.SpriteMaterial({map:glowT,blending:T.AdditiveBlending,depthWrite:false,fog:true,opacity:0.35});
-  const glow=(x,y,z,s)=>{ const sp=new T.Sprite(glowM); sp.position.set(x,y,z); sp.scale.set(s,s,1); scene.add(sp); const b=new T.Mesh(new T.SphereGeometry(0.035,6,5),M.glowY); b.position.set(x,y,z); scene.add(b); return sp; };
+  const glow=(x,y,z,s)=>{ s*=0.45; const sp=new T.Sprite(glowM); sp.position.set(x,y,z); sp.scale.set(s,s,1); scene.add(sp); const b=new T.Mesh(new T.SphereGeometry(0.035,6,5),M.glowY); b.position.set(x,y,z); scene.add(b); return sp; };
   const LIGHTS=[[3.5,2.7,3.6,0xffa860,1.1,8],[11.5,2.5,4,0xff9a50,0.9,7],[18.2,5.2,4.6,0xffb070,1.4,11],[20,5.4,12,0xffa860,1.0,9],[2.5,2.9,12.5,0xd8c8a0,0.6,6],[20,4.4,18.4,0xffc080,1.2,5]];
   for(const [x,y,z,c,i,d] of LIGHTS){ const l=new T.PointLight(c,i*Math.PI,d,1.6); l.position.set(x,y,z); scene.add(l); }
   for(const [x,y,z,s] of [[1.08,2.1,2.4,0.7],[1.08,2.1,4.8,0.7],[10.2,2.1,3.06,0.6],[13.4,2.1,4.94,0.6],[21.92,2.2,4.5,0.7],[18.08,4.9,12.5,0.6],[21.92,4.9,15.5,0.6],[2.5,3.0,12.5,0.5]]) glow(x,y,z,s);
@@ -173,7 +176,7 @@ export function build3D(){
     const cap=new T.Mesh(new T.BoxGeometry(0.16,0.04,0.08),M.apron); cap.position.set(0,1.67,0.02); g.add(cap);
     const arm=new T.Mesh(new T.CylinderGeometry(0.035,0.035,0.42,6),M.dress); arm.position.set(0.17,1.12,0.16); arm.rotation.x=-1.0; g.add(arm);
     const lamp=new T.Mesh(new T.BoxGeometry(0.1,0.15,0.1),M.glowY); lamp.position.set(0.18,0.98,0.36); g.add(lamp);
-    const lg=new T.Sprite(glowM); lg.scale.set(0.9,0.9,1); lg.position.copy(lamp.position); g.add(lg);
+    const lg=new T.Sprite(glowM); lg.scale.set(0.5,0.5,1); lg.position.copy(lamp.position); g.add(lg);
     for(const m of [skirt,torso,head]) m.castShadow=true;
     const sl=new T.SpotLight(0xffc27a,3.2*Math.PI,10,0.52,0.45,1.3); sl.castShadow=true; sl.shadow.mapSize.set(512,512); sl.shadow.camera.near=0.3; sl.shadow.bias=-0.002; scene.add(sl); scene.add(sl.target);
     scene.add(g); P.g=g; P.sl=sl; P.lampPos=new T.Vector3(); }
@@ -192,16 +195,37 @@ export function walkResize(){ if(R3){ R3.ren.setSize(innerWidth,innerHeight,fals
   for(const s of [-1,1]){ g.beginPath(); g.moveTo(w/2-sw/2-12,cy+s*4); g.quadraticCurveTo(w/2,cy+s*(s<0?sh+12:sh*0.8+12),w/2+sw/2+12,cy+s*4); g.stroke(); } g.setLineDash([]); }
 addEventListener("resize",()=>{ if(W.on) walkResize(); });
 export const BTN={bl:$("bl").innerHTML,bb:$("bb").innerHTML,br:$("br").innerHTML};
+// 定点の視点：高い所から、天井と手前の壁を透かして覗く（箱庭の断面）。廊下と階段は、向きを保ったまま椅子に合わせて滑る
+export function camFor(x,z){ const c=cellAt(x,z);
+  if(c==="R") return {id:"R",p:[-1.6,8.2,4.0],l:[4.4,0,4.0]};
+  if(c==="F"){ const cx=clamp(x,8.5,15.5); return {id:"F",p:[cx-5.6,7.6,4.0],l:[cx+0.6,0,4.0]}; }
+  if(c==="H"||c==="s") return {id:"H",p:[13.2,10.0,4.6],l:[19.2,1.2,4.6]};
+  if((c==="U"||c==="D")&&!(z>=15&&z<16&&x<18)){ const cz=clamp(z,9.5,18); return {id:"U",p:[20,10.6,cz-5.6],l:[20,3,cz+0.6]}; }
+  if(c==="S"&&z<15){ const cz=clamp(z,8.5,15); return {id:"S",p:[2.5,7.6,cz-5.6],l:[2.5,0,cz+0.6]}; }
+  const cx=clamp(x,4,17), fy=floorAt(cx,15.5); return {id:"B",p:[cx-5.6,fy+7.6,15.5],l:[cx+0.6,fy,15.5]}; }
+// 指で示した向きへ、脚を交互に出してよちよち進む。強く押せば急ぎ足になり、椅子が鳴く
+export const stick={x:0,y:0,on:false};
+export function autoStep(wx,wz,rush){ if(S.state!=="walk"||W.arrived) return;
+  W.moveT=S.t; W.idle=0; W.side=W.side>0?-1:1; W.lift=1;
+  const want=Math.atan2(wx,wz); let d=((want-W.yaw)%(Math.PI*2)+Math.PI*3)%(Math.PI*2)-Math.PI;
+  const turn=clamp(d,-Math.PI/6,Math.PI/6); W.yaw+=turn; d-=turn;
+  if(Math.abs(d)>Math.PI/4){ legThud(); W.wob=Math.min(1.2,W.wob+0.2); return; }
+  const y0=floorAt(W.x,W.z), fx=Math.sin(W.yaw)*0.5, fz=Math.cos(W.yaw)*0.5;
+  let moved=false; for(const [mx,mz] of [[fx,fz],[fx,0],[0,fz]]){ if(Math.hypot(mx,mz)<0.2) continue; if(canStand(W.x+mx,W.z+mz,y0)){ W.x+=mx; W.z+=mz; moved=true; break; } }
+  if(moved) legThud(); else { thump(0.5); if(!W.said.bump){ W.said.bump=1; say("（ごつり、と何かに当たった）",true); } }
+  if(rush){ creak(); heard(); W.wob=Math.min(1.2,W.wob+0.5); } else W.wob=Math.min(1.2,W.wob+0.32);
+  arriveCheck(); }
+export function arriveCheck(){ if(cellAt(W.x,W.z)==="D"&&!W.arrived){ W.arrived=true; S.sus*=0.5; say("（書斎の扉の前に、辿り着いた。私は、元の椅子に戻った）"); wfade.style.opacity=1; setTimeout(()=>{ const d=W.done; hideWalk(); d&&d(); },2600); } }
 export const START={x:3.2,z:4.1,yaw:Math.PI/2};
 export const NOTICE=1.3; // 女中が立ち止まってから、見咎めるまでの秒
 export function startWalk(done){
   if(!W.built) build3D();
   Object.assign(W,{on:true,done,x:START.x,z:START.z,yaw:START.yaw,px:START.x,pz:START.z,pyaw:START.yaw,vx:START.x,vz:START.z,vyaw:START.yaw,last:0,lastT:-9,moveT:-9,wob:0,lift:0,side:0,q:0,inK:0,
-    notice:0,noticeP:null,litPass:0,povT:0,povP:null,povCd:6,grace:2,arrived:false,said:{},idle:0,hint:0,cue:false});
+    notice:0,noticeP:null,stepT:0,cam:null,camId:"",mapYaw:0,litPass:0,povT:0,povP:null,povCd:6,grace:2,arrived:false,said:{},idle:0,hint:0,cue:false});
   PATROLS.forEach((P,k)=>{ Object.assign(P,{x:P.route[P.i][0],z:P.route[P.i][1],dir:1,wait:k===0?3:1,yaw:0,lyaw:0,st:0,alert:null,q:0}); P.i=Math.min(P.i+1,P.route.length-1); });
   walkResize(); wc.hidden=false; seamEl.hidden=false; wfade.style.opacity=0; document.body.classList.add("walking"); S.state="walk"; S.sitter=null; S.blobs=[]; S.w=0;
-  $("bl").innerHTML='左の脚<small>←</small>'; $("br").innerHTML='右の脚<small>→</small>'; $("bb").innerHTML='じっとする<small>押している間 / Space</small>';
-  say("右、左、右。……足音がしたら、ただの椅子に戻るのです。"); }
+  $("bb").innerHTML='じっとする<small>押している間 / Space</small>';
+  say("そろり、そろり。……足音がしたら、ただの椅子に戻るのです。"); }
 export function hideWalk(){ if(!W.on&&wc.hidden) return; W.on=false; wc.hidden=true; seamEl.hidden=true; wfade.style.opacity=0; document.body.classList.remove("walking");
   $("bl").innerHTML=BTN.bl; $("bb").innerHTML=BTN.bb; $("br").innerHTML=BTN.br; bb.classList.remove("cue"); }
 export function legThud(){ thump(0.35); noiseBurst(A.brown,0.12,0.4,"lowpass",260,1); }
@@ -221,7 +245,7 @@ export function walkStep(side){ if(S.state!=="walk"||W.arrived) return; if(S.hol
   const fx=Math.sin(W.yaw), fz=Math.cos(W.yaw), y0=floorAt(W.x,W.z), nx=W.x+fx*0.5, nz=W.z+fz*0.5;
   if(canStand(nx,nz,y0)){ W.x=nx; W.z=nz; legThud(); }
   else { creak(); thump(0.5); heard(); W.wob=Math.min(1.2,W.wob+0.4); if(!W.said.bump){ W.said.bump=1; say("（ごつり、と何かに当たった）",true); } }
-  if(cellAt(W.x,W.z)==="D"&&!W.arrived){ W.arrived=true; S.sus*=0.5; say("（書斎の扉の前に、辿り着いた。私は、元の椅子に戻った）"); wfade.style.opacity=1; setTimeout(()=>{ const d=W.done; hideWalk(); d&&d(); },2600); } }
+  arriveCheck(); }
 export function seesChair(P){ const d=Math.hypot(W.px-P.x,W.pz-P.z); if(d>8.5) return false; const fy=floorAt(P.x,P.z), cy=floorAt(W.px,W.pz); if(Math.abs(fy-cy)>1.7) return false;
   const a=Math.atan2(W.px-P.x,W.pz-P.z); let da=Math.abs(((a-P.lyaw)%(Math.PI*2)+Math.PI*3)%(Math.PI*2)-Math.PI); if(d>0.9&&da>0.5) return false;
   const ay=fy+1.0, by=cy+0.7, n=Math.ceil(d/0.15); for(let i=1;i<n;i++){ const t=i/n, x=P.x+(W.px-P.x)*t, z=P.z+(W.pz-P.z)*t, y=ay+(by-ay)*t, c=cellAt(x,z); if(c==="#"||y<floorOf(c,x,z)+0.05||y>ceilOf(c,x,z)) return false; }
@@ -245,6 +269,12 @@ export function walkUpdate(dt){
   W.wob=Math.max(0,W.wob-dt*(S.hold?3.2:0.55)); W.lift=Math.max(0,W.lift-dt*3.5); W.idle+=dt; W.grace-=dt; W.povCd-=dt;
   const k=Math.min(1,dt*9); W.px+=(W.x-W.px)*k; W.pz+=(W.z-W.pz)*k; let dy=((W.yaw-W.pyaw)%(Math.PI*2)+Math.PI*3)%(Math.PI*2)-Math.PI; W.pyaw+=dy*k;
   if(S.state==="walk"&&!W.arrived) for(const P of PATROLS) patrolUpdate(P,dt);
+  // 指の向きを、いまの視点から屋敷の向きへ直す。押している間は視点が切り替わっても向きを保つ
+  { const m=Math.hypot(stick.x,stick.y); W.stepT-=dt;
+    if(!stick.on||m<0.2) W.mapYaw=W.camYaw||0;
+    if(S.state==="walk"&&!S.hold&&m>=0.2&&W.stepT<=0){ const rush=m>0.85, c=Math.cos(W.mapYaw), sn=Math.sin(W.mapYaw), ix=stick.x/m, iy=-stick.y/m;
+      // 前＝視線の向き(sin,cos)、右＝(-cos, sin)
+      autoStep(sn*iy-c*ix, c*iy+sn*ix, rush); W.stepT=rush?0.26:0.5; } }
   // 見つかるかどうか：決まりは一つ。灯りに照らされた時、椅子が置き場（凹みの上）に静かに収まっていなければ、女中は立ち止まる。
   // 立ち止まっている間に収まれば「気のせい」、収まらなければ露見
   if(S.state==="walk"&&!W.arrived&&W.grace<=0){ let lit=null, near=false;
@@ -269,13 +299,14 @@ export function walkUpdate(dt){
   walkRender(dt); }
 export function walkRender(dt){ const cam=R3.cam, T=R3.T;
   const fx=Math.sin(W.pyaw), fz=Math.cos(W.pyaw), fy=floorAt(W.px,W.pz);
-  // 歩くと背後から、止まると椅子の中から
-  const want=(S.hold||W.idle>1.3)&&S.state==="walk"?1:0; W.inK+=(want-W.inK)*Math.min(1,dt*(want?2.2:5));
-  let d=2.5; for(;d>0.35;d-=0.1){ const x=W.px-fx*d, z=W.pz-fz*d, c=cellAt(x,z); if(c!=="#"&&fy+1.75<ceilOf(c,x,z)-0.15&&Math.abs(floorOf(c,x,z)-fy)<0.8) break; }
-  const back=new T.Vector3(W.px-fx*d,fy+1.75,W.pz-fz*d), backL=new T.Vector3(W.px+fx*2.2,fy+0.05,W.pz+fz*2.2);
+  // 動いている間は定点から覗き、息を殺せば椅子の中から
+  const want=S.hold&&S.state==="walk"?1:0; W.inK+=(want-W.inK)*Math.min(1,dt*(want?2.6:5));
+  const cf=camFor(W.px,W.pz); if(!W.cam||cf.id!==W.camId){ W.camId=cf.id; W.cam={p:new T.Vector3(...cf.p),l:new T.Vector3(...cf.l)}; }
+  else { const k=Math.min(1,dt*3); W.cam.p.lerp(new T.Vector3(...cf.p),k); W.cam.l.lerp(new T.Vector3(...cf.l),k); }
+  W.camYaw=Math.atan2(W.cam.l.x-W.cam.p.x,W.cam.l.z-W.cam.p.z);
   const ins=new T.Vector3(W.px+fx*0.3,fy+0.6,W.pz+fz*0.3), insL=new T.Vector3(W.px+fx*3,fy+0.75,W.pz+fz*3);
   const e=W.inK*W.inK*(3-2*W.inK);
   if(W.povT>0&&W.povP){ W.povT-=dt; const P=W.povP, y=floorAt(P.x,P.z); cam.position.set(P.x+Math.sin(P.lyaw)*0.1,y+1.5,P.z+Math.cos(P.lyaw)*0.1); cam.lookAt(W.px,fy+0.55,W.pz); cam.fov=42; seamEl.style.opacity=0; }
-  else { cam.position.copy(back).lerp(ins,e); cam.lookAt(backL.lerp(insL,e)); cam.fov=62-e*16; seamEl.style.opacity=String(clamp((e-0.25)/0.6,0,1)); }
-  cam.updateProjectionMatrix(); R3.me.visible=e<0.6||W.povT>0; R3.post.render(dt,S.t); }
-
+  else if(e<0.5){ cam.position.copy(W.cam.p); cam.lookAt(W.cam.l); cam.fov=52; seamEl.style.opacity=String(clamp(e*4,0,1)); }
+  else { cam.position.copy(ins); cam.lookAt(insL); cam.fov=46; seamEl.style.opacity="1"; }
+  cam.updateProjectionMatrix(); R3.me.visible=e<0.5||W.povT>0; R3.post.render(dt,S.t); }

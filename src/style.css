@@ -53,3 +53,8 @@ body.intro #ctl,body.intro #bal,body.intro #lung,body.intro #lunglabel,body.intr
 .share{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
 .share button{padding:10px 20px;font-size:14px}
 #toast{font-size:13px;color:var(--muted);min-height:1.4em}
+
+body.walking #bl,body.walking #br{visibility:hidden}
+#stick{position:fixed;width:112px;height:112px;margin:-56px 0 0 -56px;border:1px solid rgba(227,215,195,.28);border-radius:50%;pointer-events:none;z-index:3}
+#stick i{position:absolute;left:36px;top:36px;width:40px;height:40px;border-radius:50%;background:rgba(227,215,195,.18);border:1px solid rgba(227,215,195,.4)}
+#stick.rush{border-color:var(--lamp)} #stick.rush i{background:rgba(217,145,59,.35)}
