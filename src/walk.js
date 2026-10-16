@@ -312,12 +312,12 @@ export function build3D(){
     const sl=new T.SpotLight(0xffc27a,3.2*Math.PI,10,0.52,0.45,1.3); sl.castShadow=true; sl.shadow.mapSize.set(512,512); sl.shadow.camera.near=0.3; sl.shadow.bias=-0.002; scene.add(sl); scene.add(sl.target);
     scene.add(g); P.g=g; P.sl=sl; P.lampPos=new T.Vector3(); P.lamp=[lamp,lg]; }
   // 陶器人形の女中（Blenderで台本から組んだもの）が届いたら、円柱の女中と差し替える。灯りは右手に提げ直す
-  { const porc=new T.MeshStandardMaterial({color:0xf0ebe2,roughness:0.22}), eye=new T.MeshStandardMaterial({color:0x050505,roughness:0.05}), lip=new T.MeshStandardMaterial({color:0x7a0c10,roughness:0.3});
-    const MM={porcelain:porc,dress:M.dress,apron:M.apron,hair:M.hair,eye,lip}; M.porc=porc;
+  // 絵付けの顔、布の織り目は模型の材質のまま使う。手提げランプの硝子だけは灯りとして光らせる
+  { const glassM=new T.MeshBasicMaterial({color:0xffd7a0});
     new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).load(maidGlb,gl=>{ for(const P of PATROLS){ const g=P.g;
       for(const c of [...g.children]) if(!P.lamp.includes(c)) g.remove(c);
-      const m=gl.scene.clone(true); m.rotation.y=Math.PI; m.traverse(o=>{ if(o.isMesh){ o.castShadow=true; o.receiveShadow=true; o.material=MM[o.material.name]||M.dress; } }); g.add(m);
-      P.head=m.getObjectByName("head"); for(const l of P.lamp) l.position.set(-0.17,0.84,0.37); } }); }
+      const m=gl.scene.clone(true); m.rotation.y=Math.PI; m.traverse(o=>{ if(o.isMesh){ o.castShadow=true; o.receiveShadow=true; if(o.material.name==="glass"){ o.material=glassM; o.castShadow=false; } else if(o.material.map) o.material.map.anisotropy=4; } }); g.add(m);
+      P.head=m.getObjectByName("head"); P.lamp[0].visible=false; P.lamp[1].position.set(-0.17,0.84,0.37); P.lamp[1].scale.set(0.35,0.35,1); } }); }
   const post=makePost(ren,scene,cam); window.__post=post;
   const key=new T.PointLight(0xffd2a0,0,3,1.5); scene.add(key); // 寄りの時だけ灯す、人形劇の手持ちの明かり
   // 素材サイトの家具（Poly Haven, CC0）。届いたら仮の箱と差し替える
