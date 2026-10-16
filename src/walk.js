@@ -68,7 +68,7 @@ export function build3D(){
   // 写真素材（Poly Haven, CC0）：色・凹凸・粗さと陰。読み込みが済むまでは、手描きの質感で代わりを務める
   const TL=new T.TextureLoader();
   const pbr=(name,rep=1,opt={})=>{ const ld=(k,srgb)=>{ const t=TL.load(`./tex/${name}_${k}.jpg`); t.wrapS=t.wrapT=T.RepeatWrapping; t.repeat.set(rep,rep); t.anisotropy=4; if(srgb) t.colorSpace=T.SRGBColorSpace; return t; };
-    const orm=ld("orm"); return new T.MeshStandardMaterial({map:ld("diff",true),normalMap:ld("nor"),roughnessMap:orm,aoMap:orm,aoMapIntensity:0.8,roughness:1,metalness:0,...opt}); };
+    const orm=ld("orm"); return new T.MeshStandardMaterial({map:ld("diff",true),normalMap:ld("nor"),roughnessMap:orm,aoMap:orm,metalnessMap:opt.metalness?orm:null,aoMapIntensity:0.8,roughness:1,metalness:0,...opt}); };
   const M={
     wall:new T.MeshStandardMaterial({map:wallT,side:T.FrontSide,roughness:0.9}),
     floor:pbr("parquet",1,{color:0x6e5444,envMapIntensity:0.15,normalScale:new T.Vector2(0.8,0.8)}),
@@ -77,7 +77,7 @@ export function build3D(){
     wood:pbr("wood",1,{color:0x5a4034,envMapIntensity:0.25,side:T.DoubleSide}),
     leather:pbr("leather",1,{color:0xc89a80,normalScale:new T.Vector2(1.4,1.4)}),
     leather2:pbr("leather",1,{color:0x8a7064}),
-    brass:new T.MeshStandardMaterial({color:0xb08a40,metalness:0.9,roughness:0.35}),
+    brass:pbr("brass",1,{metalness:1}),
     dress:new T.MeshPhongMaterial({color:0x14141c,shininess:10}),
     apron:new T.MeshPhongMaterial({color:0xd8d2c4,shininess:5}),
     face:new T.MeshPhongMaterial({color:0xf2ece2,shininess:20,emissive:0x221c18}),

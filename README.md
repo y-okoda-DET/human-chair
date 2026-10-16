@@ -41,6 +41,7 @@ npm run build      # dist/ に書き出す
 写真の質感と録った物音は、どれも CC0（パブリックドメイン）です。帰属表示は不要ですが、作者を記します。
 
 - 質感（Poly Haven）：fabric_leather_02（Rob Tuytel）、herringbone_parquet（Jenelle van Heerden, Sergej Majboroda）、quatrefoil_jacquard_fabric・floral_jacquard（colormass, Rico Cilliers）、wood_table_001（Dimitrios Savva, Rico Cilliers）、wooden_panels（Dimitrios Savva）、HDRI brown_photostudio_01（Sergej Majboroda）
+- 真鍮（ambientCG）：Metal048B
 - 物音（freesound）：kyles #637353、badbear904 #702165、Crinkem #501015、IENBA #536187、Joao_Janz #485145、ftpalad #119914、blukotek #412751
 
-`public/tex` の `*_orm.jpg` は、赤＝陰（AO）、緑＝粗さを一枚に詰めたものです。
+`public/tex` の `*_orm.jpg` は、赤＝陰（AO）、緑＝粗さ、青＝金属らしさを一枚に詰めたものです。
