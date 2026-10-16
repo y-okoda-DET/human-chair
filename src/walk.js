@@ -2,6 +2,9 @@ import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { MeshoptDecoder } from "three/examples/jsm/libs/meshopt_decoder.module.js";
 import { makePost } from "./post.js";
+// 模型は本体のJSに埋め込む（公開先が .glb を配れないため）
+import chairGlb from "./models/chair.glb?inline";
+import maidGlb from "./models/maid.glb?inline";
 import { A, creak, leatherSquish, noiseBurst, play, scrape, thump, woodKnock } from "./audio.js";
 import { $, S, bb, say } from "./state.js";
 
@@ -144,7 +147,7 @@ export function build3D(){
     g.userData.legs=legs; g.userData.back=back; g.userData.mat=mat; CHAIRS.push(g); return g; }
   // 作り込んだ肘掛椅子（Blenderで台本から組んだもの）が届いたら、箱の椅子と差し替える
   const CHAIRS=[];
-  new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).load("./models/chair.glb",gl=>{ const src=gl.scene;
+  new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).load(chairGlb,gl=>{ const src=gl.scene;
     for(const g of CHAIRS){ const leather=g.userData.mat; g.clear(); const m=src.clone(true); m.rotation.y=Math.PI; m.scale.setScalar(0.85);
       m.traverse(o=>{ if(o.isMesh){ o.castShadow=true; o.receiveShadow=true; const n=o.material.name; o.material=n==="wood"?M.wood:n==="brass"?M.brass:leather; } });
       g.add(m); const by=n=>m.getObjectByName(n);
@@ -209,7 +212,7 @@ export function build3D(){
   // 陶器人形の女中（Blenderで台本から組んだもの）が届いたら、円柱の女中と差し替える。灯りは右手に提げ直す
   { const porc=new T.MeshStandardMaterial({color:0xf0ebe2,roughness:0.22}), eye=new T.MeshStandardMaterial({color:0x050505,roughness:0.05}), lip=new T.MeshStandardMaterial({color:0x7a0c10,roughness:0.3});
     const MM={porcelain:porc,dress:M.dress,apron:M.apron,hair:M.hair,eye,lip}; M.porc=porc;
-    new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).load("./models/maid.glb",gl=>{ for(const P of PATROLS){ const g=P.g;
+    new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).load(maidGlb,gl=>{ for(const P of PATROLS){ const g=P.g;
       for(const c of [...g.children]) if(!P.lamp.includes(c)) g.remove(c);
       const m=gl.scene.clone(true); m.rotation.y=Math.PI; m.traverse(o=>{ if(o.isMesh){ o.castShadow=true; o.receiveShadow=true; o.material=MM[o.material.name]||M.dress; } }); g.add(m);
       P.head=m.getObjectByName("head"); for(const l of P.lamp) l.position.set(-0.17,0.84,0.37); } }); }
