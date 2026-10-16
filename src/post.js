@@ -63,8 +63,9 @@ export function makePost(ren, scene, cam){
   apply();
   return {
     tier, T, composer, ao, film, st, resize: apply,
-    render(dt, t){
-      if (NOPOST){ ren.render(scene, cam); return; }
+    // draw=false の時は測るだけで描かない（12コマで刻む時、描かないコマは前の絵が残る）
+    render(dt, t, draw = true){
+      if (NOPOST){ if (draw) ren.render(scene, cam); return; }
       const fr = Math.floor(t * 12), u = film.uniforms;
       if (u.get("uFrame").value !== fr){ u.get("uFrame").value = fr; u.get("uFlick").value = 0.96 + 0.06 * Math.random(); }
       st.acc += dt; st.n++; st.t += dt;
@@ -75,7 +76,7 @@ export function makePost(ren, scene, cam){
         else if (fps < 22 && ao && ao.enabled !== false){ ao.enabled = false; }
         else if (fps > 52 && st.scale < cap){ st.scale = Math.min(cap, st.scale * 1.1); apply(); }
       }
-      composer.render(dt);
+      if (draw) composer.render(dt);
     },
   };
 }

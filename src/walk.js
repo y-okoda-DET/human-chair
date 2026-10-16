@@ -195,14 +195,17 @@ export function walkResize(){ if(R3){ R3.ren.setSize(innerWidth,innerHeight,fals
   for(const s of [-1,1]){ g.beginPath(); g.moveTo(w/2-sw/2-12,cy+s*4); g.quadraticCurveTo(w/2,cy+s*(s<0?sh+12:sh*0.8+12),w/2+sw/2+12,cy+s*4); g.stroke(); } g.setLineDash([]); }
 addEventListener("resize",()=>{ if(W.on) walkResize(); });
 export const BTN={bl:$("bl").innerHTML,bb:$("bb").innerHTML,br:$("br").innerHTML};
-// 定点の視点：高い所から、天井と手前の壁を透かして覗く（箱庭の断面）。廊下と階段は、向きを保ったまま椅子に合わせて滑る
+// 定点の視点：斜め上から箱庭を覗く。どこでも同じ向きから覗くので、指の向きが入れ替わらない。
+// 天井と手前の壁は上から透けて消える。廊下と階段では、向きを保ったまま椅子に合わせて滑る
+const VIEW={dx:Math.SQRT1_2,dz:Math.SQRT1_2,back:7.0,up:8.4};
+const oblique=(id,x,y,z)=>({id,p:[x-VIEW.dx*VIEW.back,y+VIEW.up,z-VIEW.dz*VIEW.back],l:[x,y,z]});
 export function camFor(x,z){ const c=cellAt(x,z);
-  if(c==="R") return {id:"R",p:[-1.6,8.2,4.0],l:[4.4,0,4.0]};
-  if(c==="F"){ const cx=clamp(x,8.5,15.5); return {id:"F",p:[cx-5.6,7.6,4.0],l:[cx+0.6,0,4.0]}; }
-  if(c==="H"||c==="s") return {id:"H",p:[13.2,10.0,4.6],l:[19.2,1.2,4.6]};
-  if((c==="U"||c==="D")&&!(z>=15&&z<16&&x<18)){ const cz=clamp(z,9.5,18); return {id:"U",p:[20,10.6,cz-5.6],l:[20,3,cz+0.6]}; }
-  if(c==="S"&&z<15){ const cz=clamp(z,8.5,15); return {id:"S",p:[2.5,7.6,cz-5.6],l:[2.5,0,cz+0.6]}; }
-  const cx=clamp(x,4,17), fy=floorAt(cx,15.5); return {id:"B",p:[cx-5.6,fy+7.6,15.5],l:[cx+0.6,fy,15.5]}; }
+  if(c==="R") return oblique("R",4.2,0,4.2);
+  if(c==="F") return oblique("F",clamp(x,9,14.5),0,4.0);
+  if(c==="H"||c==="s") return oblique("H",19,0.8,4.6);
+  if((c==="U"||c==="D")&&!(z>=15&&z<16&&x<18)) return oblique("U",20,3,clamp(z,10.5,17.2));
+  if(c==="S"&&z<15) return oblique("S",2.5,0,clamp(z,8.5,14.5));
+  const cx=clamp(x,4,16.5); return oblique("B",cx,floorAt(cx,15.5),15.5); }
 // 指で示した向きへ、脚を交互に出してよちよち進む。強く押せば急ぎ足になり、椅子が鳴く
 export const stick={x:0,y:0,on:false};
 export function autoStep(wx,wz,rush){ if(S.state!=="walk"||W.arrived) return;
@@ -216,6 +219,8 @@ export function autoStep(wx,wz,rush){ if(S.state!=="walk"||W.arrived) return;
   if(rush){ creak(); heard(); W.wob=Math.min(1.2,W.wob+0.5); } else W.wob=Math.min(1.2,W.wob+0.32);
   arriveCheck(); }
 export function arriveCheck(){ if(cellAt(W.x,W.z)==="D"&&!W.arrived){ W.arrived=true; S.sus*=0.5; say("（書斎の扉の前に、辿り着いた。私は、元の椅子に戻った）"); wfade.style.opacity=1; setTimeout(()=>{ const d=W.done; hideWalk(); d&&d(); },2600); } }
+// 人形の手ぶれ：こまごとに、ほんの僅か位置と角度が揺らぐ
+const jit=a=>(Math.random()-0.5)*2*a;
 export const START={x:3.2,z:4.1,yaw:Math.PI/2};
 export const NOTICE=1.3; // 女中が立ち止まってから、見咎めるまでの秒
 export function startWalk(done){
@@ -261,7 +266,8 @@ export function patrolUpdate(P,dt){ const T=R3.T;
       P.st-=dt; if(P.st<=0){ P.st=0.55/P.spd; const dd=Math.hypot(P.x-W.px,P.z-W.pz); if(dd<15){ const rx=-Math.cos(W.pyaw), rz=Math.sin(W.pyaw); stepAt(dd,((P.x-W.px)*rx+(P.z-W.pz)*rz)/Math.max(1,dd)); } } } }
   let da=((P.tyaw-P.lyaw)%(Math.PI*2)+Math.PI*3)%(Math.PI*2)-Math.PI; P.lyaw+=clamp(da,-dt*2.6,dt*2.6);
   // 姿は12コマで刻む
-  P.q+=dt; if(P.q>=1/12){ P.q-=1/12; const y=floorAt(P.x,P.z), bob=P.wait>0?0:Math.abs(Math.sin(S.t*7))*0.03; P.g.position.set(P.x,y+bob,P.z); P.g.rotation.y=P.lyaw; }
+  P.q+=dt; if(P.q>=1/12){ P.q-=1/12; const y=floorAt(P.x,P.z), bob=P.wait>0?0:Math.abs(Math.sin(S.t*7))*0.03; P.g.position.set(P.x+jit(0.006),y+bob,P.z+jit(0.006)); P.g.rotation.set(jit(0.012),P.lyaw+jit(0.02),(P.wait>0?0:(Math.floor(S.t*2.6)%2?0.035:-0.035))+jit(0.012));
+    P.sl.intensity=3.2*Math.PI*(0.92+Math.random()*0.14); }
   const y=floorAt(P.x,P.z); P.lampPos.set(P.x+Math.sin(P.lyaw)*0.36+Math.cos(P.lyaw)*0.18,y+1.05,P.z+Math.cos(P.lyaw)*0.36-Math.sin(P.lyaw)*0.18);
   P.sl.position.copy(P.lampPos); P.sl.target.position.set(P.x+Math.sin(P.lyaw)*4,y,P.z+Math.cos(P.lyaw)*4); }
 export function walkUpdate(dt){
@@ -294,19 +300,22 @@ export function walkUpdate(dt){
   if(S.state==="walk"&&W.idle>6&&!W.said.rule){ W.said.rule=1; say("椅子の在るべき所に在る限り、誰も椅子などに目を留めはしませぬ。"); }
   // 椅子の姿は12コマで刻む
   W.q+=dt; if(W.q>=1/12){ W.q-=1/12; W.vx+=(W.x-W.vx)*0.6; W.vz+=(W.z-W.vz)*0.6; let d2=((W.yaw-W.vyaw)%(Math.PI*2)+Math.PI*3)%(Math.PI*2)-Math.PI; W.vyaw+=d2*0.6;
-    const me=R3.me, sway=Math.sin(S.t*9)*W.wob*0.08, y=floorAt(W.vx,W.vz); me.position.set(W.vx,y+W.lift*0.06,W.vz); me.rotation.set(0,W.vyaw+W.side*W.lift*0.14,W.side*W.lift*0.09+sway);
+    const me=R3.me, sway=Math.sin(S.t*9)*W.wob*0.08, y=floorAt(W.vx,W.vz); me.position.set(W.vx+jit(0.004),y+W.lift*0.06,W.vz+jit(0.004)); me.rotation.set(jit(0.008),W.vyaw+W.side*W.lift*0.14+jit(0.012),W.side*W.lift*0.09+sway+jit(0.008));
     me.userData.legs.forEach((l,i)=>{ const left=i%2===0; l.position.y=0.17+((W.side<0)===left&&i<2?W.lift*0.08:0); }); }
   walkRender(dt); }
 export function walkRender(dt){ const cam=R3.cam, T=R3.T;
   const fx=Math.sin(W.pyaw), fz=Math.cos(W.pyaw), fy=floorAt(W.px,W.pz);
   // 動いている間は定点から覗き、息を殺せば椅子の中から
   const want=S.hold&&S.state==="walk"?1:0; W.inK+=(want-W.inK)*Math.min(1,dt*(want?2.6:5));
+  // 画面は12コマで刻む：コマが替わる時だけ視点を動かし、描く
+  const fr=Math.floor(S.t*12), tick=fr!==W.frame; W.frame=fr;
   const cf=camFor(W.px,W.pz); if(!W.cam||cf.id!==W.camId){ W.camId=cf.id; W.cam={p:new T.Vector3(...cf.p),l:new T.Vector3(...cf.l)}; }
-  else { const k=Math.min(1,dt*3); W.cam.p.lerp(new T.Vector3(...cf.p),k); W.cam.l.lerp(new T.Vector3(...cf.l),k); }
+  else if(tick){ W.cam.p.lerp(new T.Vector3(...cf.p),0.25); W.cam.l.lerp(new T.Vector3(...cf.l),0.25); }
   W.camYaw=Math.atan2(W.cam.l.x-W.cam.p.x,W.cam.l.z-W.cam.p.z);
   const ins=new T.Vector3(W.px+fx*0.3,fy+0.6,W.pz+fz*0.3), insL=new T.Vector3(W.px+fx*3,fy+0.75,W.pz+fz*3);
   const e=W.inK*W.inK*(3-2*W.inK);
   if(W.povT>0&&W.povP){ W.povT-=dt; const P=W.povP, y=floorAt(P.x,P.z); cam.position.set(P.x+Math.sin(P.lyaw)*0.1,y+1.5,P.z+Math.cos(P.lyaw)*0.1); cam.lookAt(W.px,fy+0.55,W.pz); cam.fov=42; seamEl.style.opacity=0; }
-  else if(e<0.5){ cam.position.copy(W.cam.p); cam.lookAt(W.cam.l); cam.fov=52; seamEl.style.opacity=String(clamp(e*4,0,1)); }
+  else if(e<0.5){ cam.position.copy(W.cam.p); cam.lookAt(W.cam.l); cam.fov=50; seamEl.style.opacity=String(clamp(e*4,0,1)); }
   else { cam.position.copy(ins); cam.lookAt(insL); cam.fov=46; seamEl.style.opacity="1"; }
-  cam.updateProjectionMatrix(); R3.me.visible=e<0.5||W.povT>0; R3.post.render(dt,S.t); }
+  cam.updateProjectionMatrix(); R3.me.visible=e<0.5||W.povT>0; R3.post.render(dt,S.t,tick||STEP12===false); }
+const STEP12=new URLSearchParams(location.search).get("koma")==="0"?false:true;
