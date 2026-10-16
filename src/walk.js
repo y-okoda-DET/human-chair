@@ -212,7 +212,9 @@ addEventListener("resize",()=>{ if(W.on) walkResize(); });
 export const BTN={bl:$("bl").innerHTML,bb:$("bb").innerHTML,br:$("br").innerHTML};
 // 定点の視点：斜め上から箱庭を覗く。どこでも同じ向きから覗くので、指の向きが入れ替わらない。
 // 天井と手前の壁は上から透けて消える。廊下と階段では、向きを保ったまま椅子に合わせて滑る
-const VIEW={dx:Math.SQRT1_2,dz:Math.SQRT1_2,back:7.0,up:8.4};
+// 高さは ?view=high|mid|low で見比べられる（既定は mid）
+const VIEWS={high:{back:7.0,up:8.4},mid:{back:7.8,up:6.0},low:{back:8.2,up:4.0}};
+const VIEW={dx:Math.SQRT1_2,dz:Math.SQRT1_2,...(VIEWS[new URLSearchParams(location.search).get("view")]||VIEWS.mid)};
 const oblique=(id,x,y,z)=>({id,p:[x-VIEW.dx*VIEW.back,y+VIEW.up,z-VIEW.dz*VIEW.back],l:[x,y,z]});
 export function camFor(x,z){ const c=cellAt(x,z);
   if(c==="R") return oblique("R",4.2,0,4.2);
