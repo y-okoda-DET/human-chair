@@ -398,12 +398,20 @@ export const NOTICE=1.3; // 女中が立ち止まってから、見咎めるま�
 // 続きから：場面（視点）が変わるたびに、そこを覚えておく。露見したら、ここから歩き直せる
 export let CHECK=null;
 export function clearCheck(){ CHECK=null; }
+PATROLS.forEach(P=>{ P.i0=P.i; });
 export function startWalk(done,from){
   if(!W.built) build3D();
   Object.assign(W,{on:true,done,x:START.x,z:START.z,yaw:START.yaw,px:START.x,pz:START.z,pyaw:START.yaw,vx:START.x,vz:START.z,vyaw:START.yaw,last:0,lastT:-9,moveT:-9,wob:0,lift:0,side:0,q:0,inK:0,
     notice:0,noticeP:null,pardon:0,pardonCd:0,pardonLit:false,insT:0,insK:"",insD:1,nStep:0,stepT:0,cam:null,camId:"",mapYaw:0,litPass:0,povT:0,povP:null,povCd:6,grace:2,arrived:false,said:{},idle:0,hint:0,cue:false});
-  PATROLS.forEach((P,k)=>{ Object.assign(P,{x:P.route[P.i][0],z:P.route[P.i][1],dir:1,wait:k===0?3:1,yaw:0,lyaw:0,st:0,alert:null,q:0}); P.i=Math.min(P.i+1,P.route.length-1); });
-  if(from){ Object.assign(W,{x:from.x,z:from.z,yaw:from.yaw,px:from.x,pz:from.z,pyaw:from.yaw,vx:from.x,vz:from.z,vyaw:from.yaw,pardon:from.pardon,grace:2.5,camId:"",cam:null,said:{rule:1,near:1,first:1}}); }
+  PATROLS.forEach((P,k)=>{ P.i=P.i0; Object.assign(P,{x:P.route[P.i][0],z:P.route[P.i][1],dir:1,wait:k===0?3:1,yaw:0,lyaw:0,tyaw:0,st:0,alert:null,q:0}); P.i=Math.min(P.i+1,P.route.length-1); });
+  if(from){ Object.assign(W,{x:from.x,z:from.z,yaw:from.yaw,px:from.x,pz:from.z,pyaw:from.yaw,vx:from.x,vz:from.z,vyaw:from.yaw,pardon:from.pardon,grace:2.5,camId:"",cam:null,said:{rule:1,near:1,first:1}});
+    // 続きから：女中たちはその場面に入った時の所から。ただし近くにいる者は、道筋の一番遠い端へ下がらせておく
+    if(from.pats) from.pats.forEach((q,k)=>Object.assign(PATROLS[k],q,{alert:null,q:0,st:0}));
+    for(const P of PATROLS){ if(Math.hypot(P.x-W.x,P.z-W.z)>=7||Math.abs(floorAt(P.x,P.z)-floorAt(W.x,W.z))>1.7) continue;
+      let k=0, best=-1; P.route.forEach(([x,z],j)=>{ const d=Math.hypot(x-W.x,z-W.z); if(d>best){ best=d; k=j; } });
+      const last=P.route.length-1, n=k===last?k-1:k+1, a=Math.atan2(P.route[n][0]-P.route[k][0],P.route[n][1]-P.route[k][1]);
+      Object.assign(P,{x:P.route[k][0],z:P.route[k][1],i:n,dir:k===last?-1:1,wait:3,yaw:a,lyaw:a,tyaw:a}); } }
+  S.lung=0; S.gaspCd=0;
   if(!W.clock){ const k=play("clock",0,1,0,true); if(k) W.clock=k; }
   walkResize(); wc.hidden=false; seamEl.hidden=false; wfade.style.opacity=0; document.body.classList.add("walking"); S.state="walk"; S.sitter=null; S.blobs=[]; S.w=0;
   $("bb").innerHTML='じっとする<small>押している間 / Space</small>';
@@ -474,15 +482,18 @@ export function walkUpdate(dt){
     const spot=inPlace(), moving=S.t-W.moveT<0.4||W.wob>0.45;
     // 置き場の外でも、動かずにいれば二度までは見逃される。三度目からは立ち止まって見咎める
     // 一度見逃されたら、その灯りから外れるまでは同じ見逃しが続く
-    if(lit) W.pardonCd=1; if(W.pardonCd<=0) W.pardonLit=false;
-    if(lit&&!spot&&!moving&&!W.noticeP&&!W.pardonLit&&W.pardon<PARDON){ W.pardon++; W.pardonLit=true; W.litPass=0; W.povCd=Math.max(W.povCd,14);
+    // 息を殺している間は、置き場の外でも、ただの椅子でいられる（息が続く限り）
+    const still=S.hold&&!moving&&S.lung<1;
+    if(lit) W.pardonCd=1; if(W.pardonCd<=0){ W.pardonLit=false; W.holdLit=false; }
+    if(lit&&still&&!spot&&!W.noticeP&&!W.holdLit){ W.holdLit=true; say(["（革一枚の向こうを、灯りが撫でてゆく）","（息を殺す。私は椅子だ。ただの椅子だ）","（灯りが、背凭れの上で止まった）"][Math.floor(Math.random()*3)]); }
+    if(lit&&!spot&&!moving&&!still&&!W.noticeP&&!W.pardonLit&&W.pardon<PARDON){ W.pardon++; W.pardonLit=true; W.litPass=0; W.povCd=Math.max(W.povCd,14);
       say(W.pardon===1?"……あら、こんな所に椅子が。":"……また、椅子。誰が動かすのかしら。"); leatherSquish(0.2,0.5); }
-    const odd=moving||(!spot&&!W.pardonLit);
+    const odd=moving||(!spot&&!W.pardonLit&&!still);
     if(lit&&odd){ if(!W.noticeP){ W.noticeP=lit; say("あら……？"); thump(0.7); leatherSquish(0.4,0.9); insert("back",0.75); }
       W.notice+=dt; if(W.notice>NOTICE){ walkCaught(W.noticeP,moving?"……椅子が、歩いている。":"……こんな所に、椅子なんて。"); return; } }
     else if(W.noticeP){ W.notice-=dt*0.8; if(W.notice<=0){ const P=W.noticeP; W.notice=0; W.noticeP=null; P.alert=null; W.litPass=0;
         if(lit){ W.povCd=14; } say("……気のせいね。"); } }
-    else if(lit){ W.litPass+=dt; if(W.litPass>0.9&&W.povCd<=0){ W.litPass=0; W.povCd=14; say(["……ただの椅子ね。","（灯りが、椅子の上を素通りした）","この屋敷の椅子は、どれも陰気だこと。"][Math.floor(Math.random()*3)]); } }
+    else if(lit&&!still){ W.litPass+=dt; if(W.litPass>0.9&&W.povCd<=0){ W.litPass=0; W.povCd=14; say(["……ただの椅子ね。","（灯りが、椅子の上を素通りした）","この屋敷の椅子は、どれも陰気だこと。"][Math.floor(Math.random()*3)]); } }
     else W.litPass=Math.max(0,W.litPass-dt*0.5);
     // 立ち止まった女中は、灯りを椅子へ向けたまま動かない
     if(W.noticeP) W.noticeP.alert={x:W.px,z:W.pz,t:0.5};
@@ -504,7 +515,7 @@ export function walkRender(dt){ const cam=R3.cam, T=R3.T; if(R3.syncWall) R3.syn
   // 画面は12コマで刻む：コマが替わる時だけ視点を動かし、描く
   const fr=Math.floor(S.t*12), tick=fr!==W.frame; W.frame=fr;
   const cf=camFor(W.px,W.pz); if(!W.cam||cf.id!==W.camId){ R3.shadowFor&&R3.shadowFor(cf.id); R3.ren.clippingPlanes=CLIP[cf.id]||[];
-    if(W.camId&&S.state==="walk"&&!W.arrived&&!W.noticeP&&!(CHECK&&CHECK.id===cf.id)){ CHECK={id:cf.id,x:W.x,z:W.z,yaw:W.yaw,pardon:W.pardon}; }
+    if(W.camId&&S.state==="walk"&&!W.arrived&&!W.noticeP&&!(CHECK&&CHECK.id===cf.id)){ CHECK={id:cf.id,x:W.x,z:W.z,yaw:W.yaw,pardon:W.pardon,pats:PATROLS.map(P=>({x:P.x,z:P.z,i:P.i,dir:P.dir,wait:P.wait,yaw:P.yaw,lyaw:P.lyaw,tyaw:P.tyaw}))}; }
     W.camId=cf.id; W.cam={p:new T.Vector3(...cf.p),l:new T.Vector3(...cf.l)}; }
   else if(tick){ W.cam.p.lerp(new T.Vector3(...cf.p),0.25); W.cam.l.lerp(new T.Vector3(...cf.l),0.25); }
   W.camYaw=Math.atan2(W.cam.l.x-W.cam.p.x,W.cam.l.z-W.cam.p.z);

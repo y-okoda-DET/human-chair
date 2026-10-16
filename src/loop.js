@@ -32,7 +32,8 @@ export function update(now){
   if(S.state==="caught"){ S.ts+=dt; S.w=Math.max(0,S.w-dt*3); S.dark=Math.max(0,S.dark-dt*0.6); if(S.ts>2.6) finish(true); }
   // breath
   if(S.gaspCd>0){ S.gaspCd-=dt; S.hold=false; }
-  if(S.hold&&S.state!=="walk"){ S.lung=Math.min(1,S.lung+dt/7); if(S.lung>=1){ S.lung=0; S.gaspCd=1.6; gasp(); if(S.state!=="result"){ addSus(sitting?28:8,"息漏れ"); say("（堪え切れず、大きく息が漏れた）"); } } }
+  if(S.hold&&S.state==="walk"){ S.lung=Math.min(1,S.lung+dt/6); if(S.lung>=1){ S.lung=0; S.gaspCd=1.6; gasp(); creak(); heard(); say("（堪え切れず、はっ、と息が漏れた）"); } }
+  else if(S.hold&&S.state!=="walk"){ S.lung=Math.min(1,S.lung+dt/7); if(S.lung>=1){ S.lung=0; S.gaspCd=1.6; gasp(); if(S.state!=="result"){ addSus(sitting?28:8,"息漏れ"); say("（堪え切れず、大きく息が漏れた）"); } } }
   else { if(S.lung>0.15&&S.lungWas>=0.15&&!S.hold&&S.exhaled!==true){ } S.lung=Math.max(0,S.lung-dt/3); }
   if(!S.hold&&S.lungWas>0.5&&S.lung<=0.5) exhale();
   S.lungWas=S.lung;
