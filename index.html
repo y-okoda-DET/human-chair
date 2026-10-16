@@ -45,6 +45,7 @@ body.intro #ctl,body.intro #bal,body.intro #lung,body.intro #lunglabel,body.intr
 .card h1{font-size:clamp(40px,10vw,72px);margin:0;font-weight:700;letter-spacing:.1em}
 .card p{margin:0;line-height:1.9;font-size:15px}
 .card .k{color:var(--muted);font-size:13px;line-height:1.8}
+.card button.mock{padding:8px 18px;font-size:13px;letter-spacing:.1em;border-color:rgba(227,215,195,.25);color:var(--muted)}
 .card button{justify-self:center;padding:14px 36px;border:1px solid var(--lamp);background:none;color:var(--lamp);font-family:var(--mincho);font-size:17px;letter-spacing:.2em;cursor:pointer;border-radius:2px}
 .card button:focus-visible{outline:2px solid var(--fg)}
 .letter{text-align:left;border:1px solid rgba(227,215,195,.2);padding:14px 18px;line-height:2;font-size:14px;max-height:22vh;overflow:auto;min-width:0}
@@ -76,6 +77,7 @@ body.intro #ctl,body.intro #bal,body.intro #lung,body.intro #lunglabel,body.intr
     <p>私は今、革張りの肘掛椅子の胴の中に、身を潜めております。<br>光は届きません。革一枚を隔てて伝わるのは、重みと、体温と、物音ばかり。</p>
     <p class="k">上の者が耳を澄ませたなら、息を殺すのです。<br>椅子が鳴いたなら、重心を戻すのです。<br>気配が満ちた時、すべてが終ります。</p>
     <button id="start">蓋を閉ざす</button>
+    <button id="jump3" class="mock">第三夜から（試作用）</button>
     <span class="k">音が出ます。イヤホンをお薦めします。</span>
   </div>
 </div>
@@ -554,6 +556,7 @@ holdBtn($("br"),()=>{keys.right=true; walkStep(1);},()=>{keys.right=false;});
 cv.addEventListener("pointerdown",e=>{ e.preventDefault(); S.hold=S.gaspCd<=0; $("bb").classList.add("on"); });
 for(const ev of ["pointerup","pointercancel"]) cv.addEventListener(ev,()=>{ S.hold=false; $("bb").classList.remove("on"); });
 $("start").addEventListener("click",startGame);
+$("jump3").addEventListener("click",()=>{ audioInit(); A.ctx.resume&&A.ctx.resume(); reset(); beginNight(2); });
 $("again").addEventListener("click",restartGame);
 $("retry").addEventListener("click",retryNight);
 $("save").addEventListener("click",async()=>{ const b=S.cardBlob; if(!b){ $("toast").textContent="画像を描いております。少々お待ちを。"; return; }
