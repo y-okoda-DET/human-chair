@@ -1,15 +1,28 @@
 # 人間椅子 (human-chair)
 
 江戸川乱歩「人間椅子」(1925) を原作にした、ブラウザで遊ぶ潜伏ゲームの試作。
-スマホ・PC対応。インストール不要、単一の HTML で動く。
+スマホ・PC対応。Vite + Three.js（r186）で組み、静的なファイルとして書き出す。
 
-- `index.html` — 本編。序章、三夜（第一夜ホテルのロビーは手ほどき、夜会の広間、奥様の書斎）、手紙が返ってくる結末。WebGL2 + Web Audio、依存ライブラリなし
+- `src/` — 本編。序章、三夜（第一夜ホテルのロビーは手ほどき、夜会の広間、奥様の書斎）、手紙が返ってくる結末
+  - `state.js` 状態と字幕 / `story.js` 客・夜・台詞 / `flow.js` 夜の流れと結果 / `loop.js` 毎フレームの更新
+  - `interior.js` 椅子の内側（WebGL2の直書き）/ `audio.js` 音（Web Audioの合成）/ `card.js` 結果の縦書き画像
+  - `walk.js` 第三夜の椅子歩き（間取り、見回り、見つかる規則、3D）/ `post.js` 画面の仕上げと画質の自動調整
+- `legacy/prototype.html` — 一枚のHTMLだった頃の試作（参照用）
+- `tests/` — Playwright で通しプレイと規則を確かめるスクリプト
 - `docs/plan.html` — 企画書
 - `docs/selection.html` — 原作選定メモ（候補8作の比較と企画3案）
 
 ## 遊び方
 
-`index.html` をブラウザで開く。音が出るのでイヤホン推奨。
+```
+npm install
+npm run dev        # 開発（http://localhost:5173/）
+npm run build      # dist/ に書き出す
+```
+
+音が出るのでイヤホン推奨。URL に `?q=low|mid|high` を付けると画質の段を固定できる（既定は端末から自動、重ければ解像度を自動で下げる）。
+
+確かめ方：`npm run build && npx vite preview --port 4173` を立てて、`NODE_PATH=$(npm root -g) node tests/run4.cjs`（三夜の通し）、`tests/w4.cjs front|back`（二つの道を歩き切れるか）、`tests/w6.cjs`（照らされた時の規則）。
 
 - 上の者が耳を澄ませたら、息を殺す（画面長押し / Space）
 - 椅子が鳴いたら、重心を戻す（左右ボタン / ← →）

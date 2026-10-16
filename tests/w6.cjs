@@ -1,0 +1,20 @@
+const { chromium } = require('playwright'); const fs=require('fs');
+(async () => {
+  const b = await chromium.launch({args:['--use-gl=swiftshader','--enable-unsafe-swiftshader','--ignore-gpu-blocklist']});
+  const p = await b.newPage({viewport:{width:420,height:820}});
+  await p.route('**/fonts.googleapis.com/**', r=>r.abort());
+  const logs=[]; p.on('pageerror',e=>logs.push('ERR '+e.message));
+  await p.goto((process.env.BASE||'http://localhost:4173/')+(process.env.QS?'?'+process.env.QS:''),{waitUntil:'load'});
+  await p.click('#jump3'); await p.waitForTimeout(300); await p.click('#skip'); await p.waitForTimeout(200); await p.click('#skip');
+  await p.waitForFunction(()=>window.__isu().state==='walk',null,{timeout:8000});
+  const st=()=>p.evaluate(()=>{const W=window.__dbg.W,S=window.__isu(); return {state:S.state,x:+W.x.toFixed(2),z:+W.z.toFixed(2),mis:W.misplaced,pov:+W.povCd.toFixed(1),sub:document.getElementById('sub').textContent}});
+  const setup=(x,z)=>p.evaluate(([x,z])=>{ const D=window.__dbg,W=D.W; D.tp(x,z,Math.PI/2); W.grace=0; W.moveT=-9; W.wob=0; W.drag=0; W.dragged=false;
+     const P=D.PATROLS[0]; Object.assign(P,{x:17.5,z:4,i:2,dir:1,wait:0,alert:null}); D.PATROLS[1].x=2.5;D.PATROLS[1].z=7.6; D.PATROLS[2].z=17; },[x,z]);
+  const until=async(fn,s)=>{ const t0=await p.evaluate(()=>window.__isu().t); for(;;){ const r=await st(); const t=await p.evaluate(()=>window.__isu().t); if(fn(r)||t>t0+s) return r; await p.waitForTimeout(150);} };
+  await setup(12,4); let r=await until(r=>r.mis===1&&r.x<4,14); console.log('A middle:',r); await p.screenshot({path:(process.env.OUT||'.')+'/s-a.png'});
+  await setup(10.1,3.42); r=await until(r=>r.pov>5||r.state!=='walk',14); console.log('B spot:',r);
+  await p.waitForTimeout(50); await p.screenshot({path:(process.env.OUT||'.')+'/s-b.png'});
+  await setup(12,4); r=await until(r=>r.state!=='walk',14); console.log('C again:',r); await p.waitForTimeout(400); await p.screenshot({path:(process.env.OUT||'.')+'/s-c.png'});
+  r=await until(r=>r.state==='result',8); console.log('D:',r.state);
+  console.log(logs.join('\n')||'no errors'); await b.close();
+})();

@@ -1,0 +1,55 @@
+/* 単一テーマ：椅子の内側は常に暗い。ランプの橙だけが文字に灯る */
+:root{--bg:#070504;--fg:#E3D7C3;--muted:#8E8070;--lamp:#D9913B;--red:#B33A33;--mincho:"Shippori Mincho B1","Hiragino Mincho ProN","Yu Mincho",serif;color-scheme:dark}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--mincho);overflow:hidden;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
+#c,#w{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none}
+#w[hidden],#seam[hidden]{display:none}
+#seam{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;opacity:0}
+#wfade{position:fixed;inset:0;background:#000;opacity:0;pointer-events:none;transition:opacity .2s}
+body.walking #bal,body.walking #lung,body.walking #lunglabel{visibility:hidden}
+.hud{position:fixed;left:0;right:0;pointer-events:none}
+#sus{top:0;height:5px;background:rgba(255,255,255,.07)}
+#sus i{display:block;height:100%;width:0;background:var(--red);transition:width .25s}
+#sus.flash i{box-shadow:0 0 14px 3px var(--red)}
+#suslabel{position:fixed;top:calc(8px + env(safe-area-inset-top,0px));left:max(16px,env(safe-area-inset-left,0px));font-size:12px;letter-spacing:.2em;color:var(--muted);pointer-events:none}
+#bal{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(92px + env(safe-area-inset-bottom,0px));width:min(220px,50vw);height:2px;background:rgba(255,255,255,.12);pointer-events:none}
+#bal::before,#bal::after{content:"";position:absolute;top:-4px;width:1px;height:10px;background:rgba(255,255,255,.25)}
+#bal::before{left:22%}#bal::after{right:22%}
+#bal i{position:absolute;top:-5px;left:50%;width:4px;height:12px;margin-left:-2px;background:var(--fg);transition:background .2s}
+#bal i.warn{background:var(--red)}
+#ctl button.cue{animation:cue .7s ease-in-out infinite alternate;border-color:var(--lamp)}
+@keyframes cue{from{background:rgba(217,145,59,.1)}to{background:rgba(217,145,59,.45)}}
+@media (prefers-reduced-motion:reduce){#ctl button.cue{animation:none;background:rgba(217,145,59,.35)}}
+#lung{position:fixed;right:max(16px,env(safe-area-inset-right,0px));top:50%;transform:translateY(-50%);width:4px;height:160px;background:rgba(255,255,255,.07);pointer-events:none}
+#lung i{position:absolute;bottom:0;left:0;right:0;height:0;background:var(--lamp)}
+#lunglabel{position:fixed;right:calc(max(16px,env(safe-area-inset-right,0px)) + 12px);top:50%;transform:translateY(-50%);writing-mode:vertical-rl;font-size:12px;letter-spacing:.3em;color:var(--muted);pointer-events:none}
+#sub{bottom:calc(120px + env(safe-area-inset-bottom,0px));text-align:center;padding:0 max(24px,env(safe-area-inset-left,0px));font-size:clamp(17px,2.6vw,24px);line-height:1.7;text-shadow:0 0 12px #000;min-height:3em;transition:opacity .4s}
+#sub.dim{opacity:.55}
+#ctl{position:fixed;left:0;right:0;bottom:0;display:grid;grid-template-columns:1fr 2fr 1fr;gap:8px;padding:0 max(12px,env(safe-area-inset-left,0px)) calc(12px + env(safe-area-inset-bottom,0px)) max(12px,env(safe-area-inset-right,0px));}
+#ctl button{height:72px;border:1px solid rgba(227,215,195,.25);background:rgba(20,12,8,.6);color:var(--fg);font-family:var(--mincho);font-size:16px;letter-spacing:.1em;border-radius:4px;touch-action:none}
+#ctl button:active,#ctl button.on{background:rgba(217,145,59,.25);border-color:var(--lamp)}
+#ctl button:focus-visible{outline:2px solid var(--lamp)}
+#ctl small{display:block;font-size:11px;color:var(--muted);letter-spacing:.05em;margin-top:3px}
+.ov{position:fixed;inset:0;display:grid;place-items:center;background:rgba(7,5,4,.92);padding:max(16px,env(safe-area-inset-left,0px));z-index:5}
+.ov[hidden]{display:none!important}
+#intro{background:rgba(7,5,4,.6);display:grid;place-items:center;cursor:pointer}
+#intro p{max-width:30em;text-align:center;font-size:clamp(18px,2.8vw,26px);line-height:2.1;letter-spacing:.06em;opacity:0;transition:opacity 1.2s;padding:0 max(24px,env(safe-area-inset-left,0px))}
+#intro p.on{opacity:1}
+@media (prefers-reduced-motion:reduce){#intro p{transition:none}}
+#skip{position:fixed;right:max(16px,env(safe-area-inset-right,0px));bottom:calc(16px + env(safe-area-inset-bottom,0px));font-size:12px;letter-spacing:.2em;color:var(--muted);background:none;border:0;font-family:var(--mincho);cursor:pointer;z-index:6}
+#skip:focus-visible{outline:2px solid var(--lamp)}
+body.intro #ctl,body.intro #bal,body.intro #lung,body.intro #lunglabel,body.intro #sus,body.intro #suslabel{visibility:hidden}
+.card{max-width:34em;display:grid;gap:18px;text-align:center}
+.card h1{font-size:clamp(40px,10vw,72px);margin:0;font-weight:700;letter-spacing:.1em}
+.card p{margin:0;line-height:1.9;font-size:15px}
+.card .k{color:var(--muted);font-size:13px;line-height:1.8}
+.card button.mock{padding:8px 18px;font-size:13px;letter-spacing:.1em;border-color:rgba(227,215,195,.25);color:var(--muted)}
+.card button{justify-self:center;padding:14px 36px;border:1px solid var(--lamp);background:none;color:var(--lamp);font-family:var(--mincho);font-size:17px;letter-spacing:.2em;cursor:pointer;border-radius:2px}
+.card button:focus-visible{outline:2px solid var(--fg)}
+.letter{text-align:left;border:1px solid rgba(227,215,195,.2);padding:14px 18px;line-height:2;font-size:14px;max-height:22vh;overflow:auto;min-width:0}
+#cardimg{justify-self:center;height:min(34vh,420px);width:auto;max-width:100%;aspect-ratio:1080/1350;background:#0d0907;border:1px solid rgba(227,215,195,.15)}
+#result .card{gap:14px;max-height:100%;overflow:auto}
+.letter b{color:var(--lamp);font-weight:500}
+.share{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+.share button{padding:10px 20px;font-size:14px}
+#toast{font-size:13px;color:var(--muted);min-height:1.4em}
