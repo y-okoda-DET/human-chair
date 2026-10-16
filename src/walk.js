@@ -1,6 +1,5 @@
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
-import { MeshoptDecoder } from "three/examples/jsm/libs/meshopt_decoder.module.js";
 import { makePost } from "./post.js";
 // 模型は本体のJSに埋め込む（公開先が .glb を配れないため）
 import chairGlb from "./models/chair.glb?inline";
@@ -49,6 +48,20 @@ export const PATROLS=[
   {route:[[2.5,7.6],[2.5,15.5],[9,15.5],[16.6,15.5],[19.6,15.5]],spd:1.25,pause:[0.8,1.6],i:3},
   {route:[[19.6,8.8],[20,13],[19.6,17.2]],spd:0.75,pause:[2.5,4],i:2}];
 export const W={on:false,built:false};
+// 模型の読み込み：成果物の置き場は data: への fetch も WebAssembly も許さないので、
+// 埋め込んだ文字列をその場で解き、中の画像も data: の画像に替えてから組み立てる
+function glbBuffer(dataUrl){ const bin=atob(dataUrl.slice(dataUrl.indexOf(",")+1)), u=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) u[i]=bin.charCodeAt(i);
+  const dv=new DataView(u.buffer), jl=dv.getUint32(12,true), json=JSON.parse(new TextDecoder().decode(u.subarray(20,20+jl)));
+  if(!json.images||!json.images.some(im=>im.bufferView!==undefined)) return u.buffer;
+  const binStart=20+jl+8;
+  for(const im of json.images){ if(im.bufferView===undefined) continue; const bv=json.bufferViews[im.bufferView], b=u.subarray(binStart+(bv.byteOffset||0),binStart+(bv.byteOffset||0)+bv.byteLength);
+    let s2=""; for(let i=0;i<b.length;i+=0x8000) s2+=String.fromCharCode.apply(null,b.subarray(i,i+0x8000)); im.uri="data:"+(im.mimeType||"image/png")+";base64,"+btoa(s2); delete im.bufferView; }
+  let js=new TextEncoder().encode(JSON.stringify(json)); const pad=(4-js.length%4)%4; if(pad){ const t=new Uint8Array(js.length+pad); t.set(js); t.fill(0x20,js.length); js=t; }
+  const rest=u.subarray(20+jl), out=new Uint8Array(20+js.length+rest.length), ov=new DataView(out.buffer);
+  out.set(u.subarray(0,12)); ov.setUint32(8,out.length,true); ov.setUint32(12,js.length,true); ov.setUint32(16,0x4E4F534A,true); out.set(js,20); out.set(rest,20+js.length); return out.buffer; }
+export function loadGLB(dataUrl,onLoad){ let buf; try{ buf=glbBuffer(dataUrl); }catch(e){ console.error("glb",e); return; }
+  const L=new GLTFLoader(), cib=window.createImageBitmap; // 画像は img 要素で読む（fetch を使わせない）
+  try{ window.createImageBitmap=undefined; L.parse(buf,"",onLoad,e=>console.error("glb",e)); } finally { window.createImageBitmap=cib; } }
 export const wc=$("w"), seamEl=$("seam"), wfade=$("wfade");
 export let R3=null;
 export function tex(w,h,draw,rep){ const c=document.createElement("canvas"); c.width=w; c.height=h; draw(c.getContext("2d"),w,h);
@@ -148,7 +161,7 @@ export function build3D(){
     mk(gT,new T.MeshStandardMaterial({color:0xcfc2a6,roughness:0.95})); }
   // 焼き込んだ部屋が届くまでの仮の面。届いたら隠す
   const fallback=[mk(bW,M.wall),mk(bF,M.floor),mk(bC,M.ceil,false)];
-  if(new URLSearchParams(location.search).get("room")!=="0") new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).load(roomGlb,gl=>{ const lm=TL.load("./tex/room_lm.jpg",()=>{
+  if(new URLSearchParams(location.search).get("room")!=="0") loadGLB(roomGlb,gl=>{ const lm=TL.load("./tex/room_lm.jpg",()=>{
       lm.colorSpace=T.SRGBColorSpace; lm.channel=1; lm.flipY=false;
       const base={floor:M.floor,wall:M.wall,ceil:M.ceil}, made={};
       gl.scene.traverse(o=>{ if(!o.isMesh) return; const k=o.material.name; if(!made[k]){ const m=base[k].clone(); m.lightMap=lm; m.lightMapIntensity=LM_INT*(k==="ceil"?0.6:1); made[k]=m; }
@@ -173,7 +186,7 @@ export function build3D(){
     g.userData.legs=legs; g.userData.back=back; g.userData.mat=mat; CHAIRS.push(g); return g; }
   // 作り込んだ肘掛椅子（Blenderで台本から組んだもの）が届いたら、箱の椅子と差し替える
   const CHAIRS=[];
-  new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).load(chairGlb,gl=>{ const src=gl.scene;
+  loadGLB(chairGlb,gl=>{ const src=gl.scene;
     for(const g of CHAIRS){ const leather=g.userData.mat; g.clear(); const m=src.clone(true); m.rotation.y=Math.PI; m.scale.setScalar(0.85);
       m.traverse(o=>{ if(o.isMesh){ o.castShadow=true; o.receiveShadow=true; const n=o.material.name; o.material=n==="wood"?M.wood:n==="brass"?M.brass:leather; } });
       g.add(m); const by=n=>m.getObjectByName(n);
@@ -301,7 +314,11 @@ export function build3D(){
   const LIGHTS=[[3.5,2.7,3.6,0xffa860,1.1,8],[11.5,2.5,4,0xff9a50,0.9,7],[18.2,4.4,4.6,0xffb070,2.6,14],[20,5.4,12,0xffa860,1.0,9],[2.5,2.9,12.5,0xd8c8a0,0.6,6],[20,4.4,18.4,0xffc080,1.2,5],[2.7,2.2,10,0xffa060,0.7,5],[12,3.3,15.6,0xffa060,0.8,6],[5.5,2.4,15.5,0xffa060,0.7,5]];
   // 場面ごとに一灯だけ影を落とす（全部に落とすと重い）
   const SHL={R:0,F:1,H:2,U:3,S:6,B:7}, LOBJ=LIGHTS.map(([x,y,z,c,i,d])=>{ const l=new T.PointLight(c,i*Math.PI,d,1.6); l.position.set(x,y,z); l.shadow.mapSize.set(512,512); l.shadow.bias=-0.004; l.shadow.radius=3; l.shadow.camera.near=0.1; scene.add(l); return l; });
-  const shadowFor=id=>LOBJ.forEach((l,i)=>{ l.castShadow=SHL[id]===i; });
+  // 影を落とす灯りは一つきりで、場面が変わるたびにその場の主灯と入れ替わる（灯りの数が変わると、描き方を組み直して画面が止まる）
+  const SH=new T.PointLight(0xffffff,0,1,1.6); SH.castShadow=true; SH.shadow.mapSize.set(512,512); SH.shadow.bias=-0.004; SH.shadow.radius=3; SH.shadow.camera.near=0.1; scene.add(SH);
+  LOBJ.forEach(l=>{ l.userData.i0=l.intensity; }); let shWas=null;
+  const shadowFor=id=>{ const l=LOBJ[SHL[id]]; if(!l||l===shWas) return; if(shWas) shWas.intensity=shWas.userData.i0;
+    SH.position.copy(l.position); SH.color.copy(l.color); SH.intensity=l.userData.i0; SH.distance=l.distance; l.intensity=0; shWas=l; };
   for(const [x,y,z,s] of [[4.4,2.1,6.92,0.7],[6.92,2.1,5.2,0.7],[10.2,2.1,4.94,0.6],[13.4,2.1,4.94,0.6],[21.92,2.2,4.5,0.7],[18.08,4.9,12.5,0.6],[21.92,4.9,15.5,0.6],[2.5,3.0,12.5,0.5],[2.94,2.2,10,0.5],[12,3.3,15.94,0.5],[5.5,2.2,15.94,0.5]]) sconce(x,y,z,s);
   { const brass=M.brass||M.wood; const chand=(x,y,z,top,r)=>{ const ch=new T.Group(); for(let i=0;i<6;i++){ const a=i/6*Math.PI*2; const b=new T.Mesh(new T.SphereGeometry(0.04,6,5),M.glowY); b.position.set(Math.cos(a)*r,0.06,Math.sin(a)*r); ch.add(b); const cup=new T.Mesh(new T.CylinderGeometry(0.035,0.02,0.06,8),brass); cup.position.set(Math.cos(a)*r,0,Math.sin(a)*r); ch.add(cup); }
       const ring=new T.Mesh(new T.TorusGeometry(r,0.018,6,24),brass); ring.rotation.x=Math.PI/2; ch.add(ring); const bowl=new T.Mesh(new T.SphereGeometry(0.12,10,8,0,Math.PI*2,Math.PI/2,Math.PI/2),brass); bowl.position.y=-0.02; ch.add(bowl);
@@ -335,15 +352,15 @@ export function build3D(){
   // 陶器人形の女中（Blenderで台本から組んだもの）が届いたら、円柱の女中と差し替える。灯りは右手に提げ直す
   // 絵付けの顔、布の織り目は模型の材質のまま使う。手提げランプの硝子だけは灯りとして光らせる
   { const glassM=new T.MeshBasicMaterial({color:0xffd7a0});
-    new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).load(maidGlb,gl=>{ for(const P of PATROLS){ const g=P.g;
+    loadGLB(maidGlb,gl=>{ for(const P of PATROLS){ const g=P.g;
       for(const c of [...g.children]) if(!P.lamp.includes(c)) g.remove(c);
       const m=gl.scene.clone(true); m.rotation.y=Math.PI; m.traverse(o=>{ if(o.isMesh){ o.castShadow=true; o.receiveShadow=true; if(o.material.name==="glass"){ o.material=glassM; o.castShadow=false; } else if(o.material.map) o.material.map.anisotropy=4; } }); g.add(m);
       P.head=m.getObjectByName("head"); P.lamp[0].visible=false; P.lamp[1].position.set(-0.17,0.84,0.37); P.lamp[1].scale.set(0.35,0.35,1); } }); }
   const post=makePost(ren,scene,cam); window.__post=post;
   const key=new T.PointLight(0xffd2a0,0,3,1.5); scene.add(key); // 寄りの時だけ灯す、人形劇の手持ちの明かり
   // 素材サイトの家具（Poly Haven, CC0）。届いたら仮の箱と差し替える
-  import("./props.js").then(({default:PR})=>{ const L=new GLTFLoader().setMeshoptDecoder(MeshoptDecoder), hide=a=>{ for(const m of [].concat(a||[])) m.visible=false; };
-    let nPhoto=0; const put=(k,{x,y,z,ry=0,h,w,cast=true,solid=null},cb)=>L.load(PR[k],gl=>{ const o=gl.scene; o.traverse(m=>{ if(m.isMesh){ if(/canvas$/.test(m.material.name)){ m.material=new T.MeshStandardMaterial({map:PHOTO[nPhoto++%2],roughness:0.55}); } m.castShadow=cast; m.receiveShadow=true; if(m.material.map) m.material.map.anisotropy=4; } });
+  import("./props.js").then(({default:PR})=>{ const hide=a=>{ for(const m of [].concat(a||[])) m.visible=false; };
+    let nPhoto=0; const put=(k,{x,y,z,ry=0,h,w,cast=true,solid=null},cb)=>loadGLB(PR[k],gl=>{ const o=gl.scene; o.traverse(m=>{ if(m.isMesh){ if(/canvas$/.test(m.material.name)){ m.material=new T.MeshStandardMaterial({map:PHOTO[nPhoto++%2],roughness:0.55}); } m.castShadow=cast; m.receiveShadow=true; if(m.material.map) m.material.map.anisotropy=4; } });
         const bb=new T.Box3().setFromObject(o), sz=bb.getSize(new T.Vector3()), k2=h?h/sz.y:w/Math.max(sz.x,sz.z); o.scale.setScalar(k2);
         const c=bb.getCenter(new T.Vector3()); const g=new T.Group(); o.position.set(-c.x*k2,-bb.min.y*k2,-c.z*k2); g.add(o); g.position.set(x,y,z); g.rotation.y=ry; scene.add(g); if(cb) cb(g); });
     put("table",{x:3.6,y:0,z:2.6,w:1.1},()=>hide(PH.table));
