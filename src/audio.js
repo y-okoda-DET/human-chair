@@ -31,3 +31,21 @@ export function murmur(n){ const c=A.ctx; if(!c) return; let t=c.currentTime+0.0
 export const saw=()=>{ for(let i=0;i<5;i++) setTimeout(()=>noiseBurst(A.white,0.16,0.12,"bandpass",2200,3),i*230); };
 export const hammer=(n)=>{ for(let i=0;i<n;i++) setTimeout(()=>{ thump(0.5); noiseBurst(A.white,0.05,0.2,"highpass",3000,1); },i*420); };
 
+
+// ---------- 誇張した物音：人形劇の椅子らしく、木と革と詰め物を大げさに鳴らす ----------
+// 木の脚が床を叩く、乾いた短い音（高めの胴鳴りと、打撃のかちり）
+export function woodKnock(g=0.5){ const c=A.ctx; if(!c) return; const t=c.currentTime, f=150+Math.random()*60;
+  const o=c.createOscillator(); o.type="triangle"; o.frequency.setValueAtTime(f*2.2,t); o.frequency.exponentialRampToValueAtTime(f,t+0.05);
+  const v=c.createGain(); v.gain.setValueAtTime(g,t); v.gain.exponentialRampToValueAtTime(0.001,t+0.12); o.connect(v).connect(A.master); o.start(t); o.stop(t+0.14);
+  noiseBurst(A.white,0.025,g*0.6,"bandpass",3200,2); }
+// 革がたわむ、湿った軋み（ゆっくり揺れる帯域の雑音）
+export function leatherSquish(g=0.25,dur=0.5){ const c=A.ctx; if(!c) return; const t=c.currentTime, s=c.createBufferSource(); s.buffer=A.brown;
+  const f=c.createBiquadFilter(); f.type="bandpass"; f.Q.value=4; f.frequency.setValueAtTime(260,t); f.frequency.linearRampToValueAtTime(520,t+dur*0.4); f.frequency.linearRampToValueAtTime(190,t+dur);
+  const v=c.createGain(); v.gain.setValueAtTime(0.0001,t); v.gain.exponentialRampToValueAtTime(g,t+dur*0.25); v.gain.exponentialRampToValueAtTime(0.001,t+dur);
+  s.connect(f).connect(v).connect(A.master); s.start(t); s.stop(t+dur+0.05); }
+// 脚が床を掻く、ざらついた音
+export function scrape(g=0.18){ const c=A.ctx; if(!c) return; const t=c.currentTime, s=c.createBufferSource(); s.buffer=A.white;
+  const f=c.createBiquadFilter(); f.type="bandpass"; f.Q.value=6; f.frequency.setValueAtTime(900,t); f.frequency.exponentialRampToValueAtTime(1800,t+0.18);
+  const v=c.createGain(); v.gain.setValueAtTime(0.0001,t); v.gain.linearRampToValueAtTime(g,t+0.03);
+  for(let i=1;i<6;i++) v.gain.linearRampToValueAtTime(g*(i%2?0.3:1),t+0.03+i*0.03); v.gain.exponentialRampToValueAtTime(0.001,t+0.22);
+  s.connect(f).connect(v).connect(A.master); s.start(t); s.stop(t+0.25); }

@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { makePost } from "./post.js";
-import { A, creak, noiseBurst, thump } from "./audio.js";
+import { A, creak, leatherSquish, noiseBurst, scrape, thump, woodKnock } from "./audio.js";
 import { $, S, bb, say } from "./state.js";
 
 // ---------- 椅子歩き（第三夜の頭、一度きり。屋敷の一角を3Dで歩く） ----------
@@ -181,7 +181,8 @@ export function build3D(){
     const sl=new T.SpotLight(0xffc27a,3.2*Math.PI,10,0.52,0.45,1.3); sl.castShadow=true; sl.shadow.mapSize.set(512,512); sl.shadow.camera.near=0.3; sl.shadow.bias=-0.002; scene.add(sl); scene.add(sl.target);
     scene.add(g); P.g=g; P.sl=sl; P.lampPos=new T.Vector3(); }
   const post=makePost(ren,scene,cam); window.__post=post;
-  R3={T,scene,ren,cam,me,M,post}; W.built=true; walkResize(); }
+  const key=new T.PointLight(0xffd2a0,0,3,1.5); scene.add(key); // 寄りの時だけ灯す、人形劇の手持ちの明かり
+  R3={T,scene,ren,cam,me,M,post,key}; W.built=true; walkResize(); }
 
 export function walkResize(){ if(R3){ R3.ren.setSize(innerWidth,innerHeight,false); R3.cam.aspect=innerWidth/innerHeight; R3.cam.updateProjectionMatrix(); R3.post.resize(); }
   // 椅子の中：革の継ぎ目に開いた細い隙間
@@ -215,8 +216,9 @@ export function autoStep(wx,wz,rush){ if(S.state!=="walk"||W.arrived) return;
   if(Math.abs(d)>Math.PI/4){ legThud(); W.wob=Math.min(1.2,W.wob+0.2); return; }
   const y0=floorAt(W.x,W.z), fx=Math.sin(W.yaw)*0.5, fz=Math.cos(W.yaw)*0.5;
   let moved=false; for(const [mx,mz] of [[fx,fz],[fx,0],[0,fz]]){ if(Math.hypot(mx,mz)<0.2) continue; if(canStand(W.x+mx,W.z+mz,y0)){ W.x+=mx; W.z+=mz; moved=true; break; } }
-  if(moved) legThud(); else { thump(0.5); if(!W.said.bump){ W.said.bump=1; say("（ごつり、と何かに当たった）",true); } }
-  if(rush){ creak(); heard(); W.wob=Math.min(1.2,W.wob+0.5); } else W.wob=Math.min(1.2,W.wob+0.32);
+  if(moved){ legThud(); if(!W.said.first){ W.said.first=1; insert("legs",1.0); leatherSquish(0.3,0.8); } }
+  else { thump(0.5); woodKnock(0.8); leatherSquish(0.25,0.4); if(S.t-(W.bumpT||-9)>6){ W.bumpT=S.t; insert("legs",0.5); } if(!W.said.bump){ W.said.bump=1; say("（ごつり、と何かに当たった）",true); } }
+  if(rush){ creak(); scrape(0.2); heard(); W.wob=Math.min(1.2,W.wob+0.5); } else W.wob=Math.min(1.2,W.wob+0.32);
   arriveCheck(); }
 export function arriveCheck(){ if(cellAt(W.x,W.z)==="D"&&!W.arrived){ W.arrived=true; S.sus*=0.5; say("（書斎の扉の前に、辿り着いた。私は、元の椅子に戻った）"); wfade.style.opacity=1; setTimeout(()=>{ const d=W.done; hideWalk(); d&&d(); },2600); } }
 // 人形の手ぶれ：こまごとに、ほんの僅か位置と角度が揺らぐ
@@ -226,14 +228,16 @@ export const NOTICE=1.3; // 女中が立ち止まってから、見咎めるま�
 export function startWalk(done){
   if(!W.built) build3D();
   Object.assign(W,{on:true,done,x:START.x,z:START.z,yaw:START.yaw,px:START.x,pz:START.z,pyaw:START.yaw,vx:START.x,vz:START.z,vyaw:START.yaw,last:0,lastT:-9,moveT:-9,wob:0,lift:0,side:0,q:0,inK:0,
-    notice:0,noticeP:null,stepT:0,cam:null,camId:"",mapYaw:0,litPass:0,povT:0,povP:null,povCd:6,grace:2,arrived:false,said:{},idle:0,hint:0,cue:false});
+    notice:0,noticeP:null,insT:0,insK:"",insD:1,nStep:0,stepT:0,cam:null,camId:"",mapYaw:0,litPass:0,povT:0,povP:null,povCd:6,grace:2,arrived:false,said:{},idle:0,hint:0,cue:false});
   PATROLS.forEach((P,k)=>{ Object.assign(P,{x:P.route[P.i][0],z:P.route[P.i][1],dir:1,wait:k===0?3:1,yaw:0,lyaw:0,st:0,alert:null,q:0}); P.i=Math.min(P.i+1,P.route.length-1); });
   walkResize(); wc.hidden=false; seamEl.hidden=false; wfade.style.opacity=0; document.body.classList.add("walking"); S.state="walk"; S.sitter=null; S.blobs=[]; S.w=0;
   $("bb").innerHTML='じっとする<small>押している間 / Space</small>';
   say("そろり、そろり。……足音がしたら、ただの椅子に戻るのです。"); }
 export function hideWalk(){ if(!W.on&&wc.hidden) return; W.on=false; wc.hidden=true; seamEl.hidden=true; wfade.style.opacity=0; document.body.classList.remove("walking");
   $("bl").innerHTML=BTN.bl; $("bb").innerHTML=BTN.bb; $("br").innerHTML=BTN.br; bb.classList.remove("cue"); }
-export function legThud(){ thump(0.35); noiseBurst(A.brown,0.12,0.4,"lowpass",260,1); }
+export function legThud(){ thump(0.25); woodKnock(0.4); W.nStep=(W.nStep||0)+1; if(W.nStep%3===0) leatherSquish(0.1,0.4); }
+// 寄りの差し込み：ここぞという一瞬だけ、椅子の脚や革に寄る
+export function insert(kind,dur){ W.insK=kind; W.insT=dur; W.insD=dur; }
 export function stepAt(dist,pan){ const c=A.ctx; if(!c) return; const s=c.createBufferSource(); s.buffer=A.brown; const f=c.createBiquadFilter(); f.type="lowpass"; f.frequency.value=380;
   const g=c.createGain(); g.gain.setValueAtTime(0.7/(1+dist*0.55),c.currentTime); g.gain.exponentialRampToValueAtTime(0.001,c.currentTime+0.1); s.connect(f).connect(g);
   if(c.createStereoPanner){ const p=c.createStereoPanner(); p.pan.value=clamp(pan,-1,1); g.connect(p).connect(A.master); } else g.connect(A.master); s.start(); s.stop(c.currentTime+0.15); }
@@ -286,7 +290,7 @@ export function walkUpdate(dt){
   if(S.state==="walk"&&!W.arrived&&W.grace<=0){ let lit=null, near=false;
     for(const P of PATROLS){ if(seesChair(P)){ lit=P; break; } const d=Math.hypot(P.x-W.px,P.z-W.pz); if(d<7&&Math.abs(floorAt(P.x,P.z)-floorAt(W.px,W.pz))<1.7) near=true; }
     const spot=inPlace(), moving=S.t-W.moveT<0.4||W.wob>0.45, odd=!spot||moving;
-    if(lit&&odd){ if(!W.noticeP){ W.noticeP=lit; say("あら……？"); thump(0.7); noiseBurst(A.brown,0.5,0.35,"lowpass",200,1); }
+    if(lit&&odd){ if(!W.noticeP){ W.noticeP=lit; say("あら……？"); thump(0.7); leatherSquish(0.4,0.9); insert("back",0.75); }
       W.notice+=dt; if(W.notice>NOTICE){ walkCaught(W.noticeP,moving?"……椅子が、歩いている。":"……こんな所に、椅子なんて。"); return; } }
     else if(W.noticeP){ W.notice-=dt*0.8; if(W.notice<=0){ const P=W.noticeP; W.notice=0; W.noticeP=null; P.alert=null; W.litPass=0;
         if(lit){ W.povCd=14; W.povP=P; W.povT=1.7; } say("……気のせいね。"); } }
@@ -301,6 +305,7 @@ export function walkUpdate(dt){
   // 椅子の姿は12コマで刻む
   W.q+=dt; if(W.q>=1/12){ W.q-=1/12; W.vx+=(W.x-W.vx)*0.6; W.vz+=(W.z-W.vz)*0.6; let d2=((W.yaw-W.vyaw)%(Math.PI*2)+Math.PI*3)%(Math.PI*2)-Math.PI; W.vyaw+=d2*0.6;
     const me=R3.me, sway=Math.sin(S.t*9)*W.wob*0.08, y=floorAt(W.vx,W.vz); me.position.set(W.vx+jit(0.004),y+W.lift*0.06,W.vz+jit(0.004)); me.rotation.set(jit(0.008),W.vyaw+W.side*W.lift*0.14+jit(0.012),W.side*W.lift*0.09+sway+jit(0.008));
+    { const br=S.hold||W.noticeP?0:Math.sin(S.t*1.7)*Math.min(1,W.idle), bk=me.userData.back; bk.scale.set(1+br*0.02,1+br*0.025,1+br*0.22); }
     me.userData.legs.forEach((l,i)=>{ const left=i%2===0; l.position.y=0.17+((W.side<0)===left&&i<2?W.lift*0.08:0); }); }
   walkRender(dt); }
 export function walkRender(dt){ const cam=R3.cam, T=R3.T;
@@ -314,6 +319,13 @@ export function walkRender(dt){ const cam=R3.cam, T=R3.T;
   W.camYaw=Math.atan2(W.cam.l.x-W.cam.p.x,W.cam.l.z-W.cam.p.z);
   const ins=new T.Vector3(W.px+fx*0.3,fy+0.6,W.pz+fz*0.3), insL=new T.Vector3(W.px+fx*3,fy+0.75,W.pz+fz*3);
   const e=W.inK*W.inK*(3-2*W.inK);
+  if(W.insT>0&&S.state==="walk"){ W.insT-=dt; const k=1-W.insT/W.insD, sd=W.insK==="legs"?1:-1;
+    const rx=Math.cos(W.pyaw)*sd, rz=-Math.sin(W.pyaw)*sd;
+    if(W.insK==="legs"){ cam.position.set(W.px+rx*1.25+fx*0.5,fy+0.14,W.pz+rz*1.25+fz*0.5); cam.lookAt(W.px,fy+0.22+k*0.04,W.pz); cam.fov=40; }
+    else { cam.position.set(W.px+fx*1.6+rx*0.45,fy+0.5,W.pz+fz*1.6+rz*0.45); cam.lookAt(W.px,fy+0.7,W.pz); cam.fov=40-k*8; }
+    R3.key.position.set(cam.position.x+rx*0.4,cam.position.y+0.5,cam.position.z+rz*0.4); R3.key.intensity=2.2*Math.PI;
+    seamEl.style.opacity=0; cam.updateProjectionMatrix(); R3.me.visible=true; R3.post.render(dt,S.t,tick||STEP12===false); return; }
+  R3.key.intensity=0;
   if(W.povT>0&&W.povP){ W.povT-=dt; const P=W.povP, y=floorAt(P.x,P.z); cam.position.set(P.x+Math.sin(P.lyaw)*0.1,y+1.5,P.z+Math.cos(P.lyaw)*0.1); cam.lookAt(W.px,fy+0.55,W.pz); cam.fov=42; seamEl.style.opacity=0; }
   else if(e<0.5){ cam.position.copy(W.cam.p); cam.lookAt(W.cam.l); cam.fov=50; seamEl.style.opacity=String(clamp(e*4,0,1)); }
   else { cam.position.copy(ins); cam.lookAt(insL); cam.fov=46; seamEl.style.opacity="1"; }
