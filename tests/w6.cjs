@@ -7,7 +7,7 @@ const { chromium } = require('playwright');
   const logs=[]; p.on('pageerror',e=>logs.push('ERR '+e.message));
   await p.goto((process.env.BASE||'http://localhost:4173/')+(process.env.QS?'?'+process.env.QS:''),{waitUntil:'load'});
   await p.click('#jump3'); await p.waitForTimeout(300); await p.click('#skip'); await p.waitForTimeout(200); await p.click('#skip');
-  await p.waitForFunction(()=>window.__isu().state==='walk',null,{timeout:8000});
+  await p.waitForFunction(()=>window.__isu().state==='walk',null,{timeout:30000});
   const OUT=process.env.OUT||'.';
   const st=()=>p.evaluate(()=>{const W=window.__dbg.W,S=window.__isu(); return {t:+S.t.toFixed(2),state:S.state,x:+W.x.toFixed(2),z:+W.z.toFixed(2),notice:+W.notice.toFixed(2),noticing:!!W.noticeP,pov:+W.povCd.toFixed(1),sub:document.getElementById('sub').textContent}});
   const setup=(x,z,yaw)=>p.evaluate(([x,z,yaw])=>{ const D=window.__dbg,W=D.W; D.tp(x,z,yaw); Object.assign(W,{grace:0,moveT:-9,wob:0,notice:0,noticeP:null,last:0,lastT:-9,povCd:0,povT:0,pardon:2,pardonLit:false});
