@@ -196,10 +196,21 @@ export function build3D(){
   const faceT=tex(128,160,(g,w,h)=>{ g.fillStyle="#120c08"; g.fillRect(0,0,w,h); const gr=g.createRadialGradient(64,66,4,64,70,46); gr.addColorStop(0,"#d9cfbf"); gr.addColorStop(1,"rgba(40,30,20,0)"); g.fillStyle=gr; g.beginPath(); g.ellipse(64,70,30,40,0,0,7); g.fill();
     g.fillStyle="#120c08"; g.beginPath(); g.ellipse(52,64,5,3,0,0,7); g.ellipse(76,64,5,3,0,0,7); g.fill(); g.fillRect(56,94,16,2); noise(g,w,h,20); });
   faceT.colorSpace=T.SRGBColorSpace;
+  const PORTS=[], HANG=[];
+  // 褪せた肖像写真：楕円にぼかした鳶色の地に、顔だけが白く抜けた人影。束髪の婦人と、口髭の紳士
+  const photoT=(lady)=>{ const t=tex(256,320,(g,w,h)=>{ const bg=g.createRadialGradient(128,150,20,128,160,190); bg.addColorStop(0,"#b39a74"); bg.addColorStop(0.7,"#6e5638"); bg.addColorStop(1,"#2a1d10"); g.fillStyle=bg; g.fillRect(0,0,w,h);
+      g.fillStyle="#1e140c"; g.beginPath(); g.moveTo(40,320); g.quadraticCurveTo(60,200,128,190); g.quadraticCurveTo(196,200,216,320); g.fill();
+      if(lady){ g.fillStyle="#1a120a"; g.beginPath(); g.ellipse(128,92,50,40,0,Math.PI,0); g.fill(); g.beginPath(); g.ellipse(128,66,34,24,0,0,7); g.fill(); g.fillStyle="#d8cbb0"; g.beginPath(); g.moveTo(104,190); g.lineTo(128,240); g.lineTo(152,190); g.fill(); }
+      else { g.fillStyle="#1a120a"; g.beginPath(); g.ellipse(128,92,44,26,0,Math.PI,0); g.fill(); g.fillStyle="#d8cbb0"; g.fillRect(112,186,32,14); }
+      const f=g.createRadialGradient(128,128,4,128,132,46); f.addColorStop(0,"#efe6d2"); f.addColorStop(0.8,"#d6c8ac"); f.addColorStop(1,"rgba(120,96,64,0)"); g.fillStyle=f; g.beginPath(); g.ellipse(128,130,36,48,0,0,7); g.fill();
+      g.fillStyle="#2a1c10"; g.fillRect(112,124,10,3); g.fillRect(134,124,10,3); if(!lady){ g.fillRect(114,152,28,4); } else { g.fillStyle="#6a2a20"; g.fillRect(122,156,12,3); }
+      noise(g,w,h,34); g.strokeStyle="rgba(240,230,210,.25)"; for(let i=0;i<6;i++){ g.beginPath(); const x=Math.random()*w; g.moveTo(x,0); g.lineTo(x+Math.random()*30-15,h); g.stroke(); }
+      const v=g.createRadialGradient(128,160,90,128,160,200); v.addColorStop(0,"rgba(0,0,0,0)"); v.addColorStop(1,"rgba(20,12,4,.85)"); g.fillStyle=v; g.fillRect(0,0,w,h); }); t.colorSpace=T.SRGBColorSpace; return t; };
+  const PHOTO=[photoT(true),photoT(false)];
   // 肖像は、斜め上から見える側の壁にだけ掛ける（手前の壁は透けて消えるので）
   for(const [x,y,z,ry] of [[11.5,1.9,4.97,Math.PI],[6.97,2.25,1.7,-Math.PI/2],[21.97,4.9,10.4,-Math.PI/2],[17.6,2.0,7.97,Math.PI],[3.0,1.9,15.97,Math.PI],[4.4,2.0,6.97,Math.PI]]){
     const fr=new T.Mesh(new T.BoxGeometry(0.62,0.78,0.04),M.brass); fr.position.set(x,y,z); fr.rotation.y=ry; scene.add(fr);
-    const pic=new T.Mesh(new T.PlaneGeometry(0.52,0.66),new T.MeshPhongMaterial({map:faceT})); pic.position.set(x,y,z); pic.rotation.y=ry; pic.translateZ(0.025); scene.add(pic); }
+    const tx=faceT.clone(); tx.needsUpdate=true; const pic=new T.Mesh(new T.PlaneGeometry(0.52,0.66),new T.MeshPhongMaterial({map:tx})); pic.position.set(x,y,z); pic.rotation.y=ry; pic.translateZ(0.025); scene.add(pic); PORTS.push({x,z,ry,tx,o:0}); }
   // ---------- 調度：暖炉、月の差す窓とカーテン、敷物、燭台の飾り、鉢植え、宙を舞う埃 ----------
   const FLICK=[], MOTES=[];
   const wallObj=(o,x,y,z,ry)=>{ o.position.set(x,y,z); o.rotation.y=ry; scene.add(o); return o; };
@@ -251,7 +262,7 @@ export function build3D(){
   // 裏の通路：壁の釘に、女中の前掛けと黒い服が吊してある。人の抜け殻のように
   { const clothM=c=>new T.MeshStandardMaterial({color:c,roughness:0.95,side:T.DoubleSide});
     const hang=(z,c,w,h)=>{ const g=new T.PlaneGeometry(w,h,10,6), p=g.attributes.position; for(let i=0;i<p.count;i++){ const x=p.getX(i), y=p.getY(i); p.setZ(i,Math.sin(x/w*Math.PI*3)*0.03+(0.5-y/h)*0.05); p.setX(i,x*(1+(0.5-y/h)*0.35)); } g.computeVertexNormals();
-      const m=new T.Mesh(g,clothM(c)); m.position.set(2.93,1.85-h/2,z); m.rotation.y=-Math.PI/2; m.castShadow=true; scene.add(m); const k=new T.Mesh(new T.CylinderGeometry(0.012,0.012,0.08,6),M.brass); k.rotation.z=Math.PI/2; k.position.set(2.96,1.86,z); scene.add(k); };
+      const m=new T.Mesh(g,clothM(c)); m.position.set(2.93,1.85-h/2,z); m.rotation.y=-Math.PI/2; m.castShadow=true; scene.add(m); HANG.push({m,z,a:0}); const k=new T.Mesh(new T.CylinderGeometry(0.012,0.012,0.08,6),M.brass); k.rotation.z=Math.PI/2; k.position.set(2.96,1.86,z); scene.add(k); };
     hang(12.9,0x2c2430,0.42,1.25); hang(13.5,0xd8d0c2,0.34,0.72); hang(14.1,0x2c2430,0.4,1.2); }
   // 円卓の上の燭台と、廊下の突き当たりの鉢植え
   const candleM=new T.SpriteMaterial({map:tex(32,32,(g,w,h)=>{ const gr=g.createRadialGradient(16,18,0,16,16,16); gr.addColorStop(0,"rgba(255,235,190,1)"); gr.addColorStop(0.35,"rgba(255,170,80,.5)"); gr.addColorStop(1,"rgba(255,150,60,0)"); g.fillStyle=gr; g.fillRect(0,0,w,h); }),blending:T.AdditiveBlending,depthWrite:false});
@@ -277,11 +288,21 @@ export function build3D(){
   const glowT=tex(64,64,(g,w,h)=>{ const gr=g.createRadialGradient(32,32,0,32,32,32); gr.addColorStop(0,"rgba(255,225,170,1)"); gr.addColorStop(0.1,"rgba(255,190,110,.55)"); gr.addColorStop(0.35,"rgba(255,160,70,.14)"); gr.addColorStop(1,"rgba(255,150,60,0)"); g.fillStyle=gr; g.fillRect(0,0,w,h); });
   const glowM=new T.SpriteMaterial({map:glowT,blending:T.AdditiveBlending,depthWrite:false,fog:true,opacity:0.35});
   const glow=(x,y,z,s)=>{ s*=0.45; const sp=new T.Sprite(glowM); sp.position.set(x,y,z); sp.scale.set(s,s,1); scene.add(sp); const b=new T.Mesh(new T.SphereGeometry(0.035,6,5),M.glowY); b.position.set(x,y,z); scene.add(b); return sp; };
+  // 大正の電灯：壁から真鍮の腕を出し、乳白の硝子の笠をうつむかせる
+  const shadeM=new T.MeshStandardMaterial({color:0xf4e6cc,emissive:0xffc880,emissiveIntensity:0.9,roughness:0.35,transparent:true,opacity:0.92});
+  const shadeG=new T.LatheGeometry([[0.012,0.0],[0.03,-0.012],[0.058,-0.05],[0.078,-0.1],[0.086,-0.12],[0.082,-0.125]].map(([r,y])=>new T.Vector2(r,y)),20);
+  const sconce=(x,y,z,s)=>{ const fx=x-Math.round(x), fz=z-Math.round(z); let nx=0,nz=0; if(Math.abs(fx)<Math.abs(fz)) nx=fx<0?-1:1; else nz=fz<0?-1:1;
+    const wx=Math.round(x)*Math.abs(nx)+x*(1-Math.abs(nx)), wz=Math.round(z)*Math.abs(nz)+z*(1-Math.abs(nz)), o=new T.Group(); o.position.set(wx,y,wz); o.rotation.y=Math.atan2(nx,nz); scene.add(o);
+    const plate=new T.Mesh(new T.CylinderGeometry(0.05,0.05,0.02,16),M.brass); plate.rotation.x=Math.PI/2; plate.position.z=0.01; o.add(plate);
+    const arm=new T.Mesh(new T.CylinderGeometry(0.008,0.008,0.24,6),M.brass); arm.rotation.x=Math.PI/2; arm.position.set(0,0.14,0.12); o.add(arm);
+    const drop=new T.Mesh(new T.CylinderGeometry(0.007,0.007,0.05,6),M.brass); drop.position.set(0,0.115,0.24); o.add(drop);
+    const sh=new T.Mesh(shadeG,shadeM); sh.position.set(0,0.1,0.24); o.add(sh);
+    const sp=new T.Sprite(glowM); sp.position.set(0,0.02,0.24); sp.scale.set(s*0.4,s*0.4,1); o.add(sp); return sp; };
   const LIGHTS=[[3.5,2.7,3.6,0xffa860,1.1,8],[11.5,2.5,4,0xff9a50,0.9,7],[18.2,4.4,4.6,0xffb070,2.6,14],[20,5.4,12,0xffa860,1.0,9],[2.5,2.9,12.5,0xd8c8a0,0.6,6],[20,4.4,18.4,0xffc080,1.2,5],[2.7,2.2,10,0xffa060,0.7,5],[12,3.3,15.6,0xffa060,0.8,6],[5.5,2.4,15.5,0xffa060,0.7,5]];
   // 場面ごとに一灯だけ影を落とす（全部に落とすと重い）
   const SHL={R:0,F:1,H:2,U:3,S:6,B:7}, LOBJ=LIGHTS.map(([x,y,z,c,i,d])=>{ const l=new T.PointLight(c,i*Math.PI,d,1.6); l.position.set(x,y,z); l.shadow.mapSize.set(512,512); l.shadow.bias=-0.004; l.shadow.radius=3; l.shadow.camera.near=0.1; scene.add(l); return l; });
   const shadowFor=id=>LOBJ.forEach((l,i)=>{ l.castShadow=SHL[id]===i; });
-  for(const [x,y,z,s] of [[4.4,2.1,6.92,0.7],[6.92,2.1,5.2,0.7],[10.2,2.1,4.94,0.6],[13.4,2.1,4.94,0.6],[21.92,2.2,4.5,0.7],[18.08,4.9,12.5,0.6],[21.92,4.9,15.5,0.6],[2.5,3.0,12.5,0.5],[2.94,2.2,10,0.5],[12,3.3,15.94,0.5],[5.5,2.2,15.94,0.5]]) glow(x,y,z,s);
+  for(const [x,y,z,s] of [[4.4,2.1,6.92,0.7],[6.92,2.1,5.2,0.7],[10.2,2.1,4.94,0.6],[13.4,2.1,4.94,0.6],[21.92,2.2,4.5,0.7],[18.08,4.9,12.5,0.6],[21.92,4.9,15.5,0.6],[2.5,3.0,12.5,0.5],[2.94,2.2,10,0.5],[12,3.3,15.94,0.5],[5.5,2.2,15.94,0.5]]) sconce(x,y,z,s);
   { const brass=M.brass||M.wood; const chand=(x,y,z,top,r)=>{ const ch=new T.Group(); for(let i=0;i<6;i++){ const a=i/6*Math.PI*2; const b=new T.Mesh(new T.SphereGeometry(0.04,6,5),M.glowY); b.position.set(Math.cos(a)*r,0.06,Math.sin(a)*r); ch.add(b); const cup=new T.Mesh(new T.CylinderGeometry(0.035,0.02,0.06,8),brass); cup.position.set(Math.cos(a)*r,0,Math.sin(a)*r); ch.add(cup); }
       const ring=new T.Mesh(new T.TorusGeometry(r,0.018,6,24),brass); ring.rotation.x=Math.PI/2; ch.add(ring); const bowl=new T.Mesh(new T.SphereGeometry(0.12,10,8,0,Math.PI*2,Math.PI/2,Math.PI/2),brass); bowl.position.y=-0.02; ch.add(bowl);
       for(let i=0;i<3;i++){ const a=i/3*Math.PI*2, arm=new T.Mesh(new T.CylinderGeometry(0.008,0.008,r*1.1,4),brass); arm.position.set(Math.cos(a)*r/2,0.12,Math.sin(a)*r/2); arm.rotation.set(Math.sin(a)*1.1,0,-Math.cos(a)*1.1); ch.add(arm); }
@@ -322,7 +343,7 @@ export function build3D(){
   const key=new T.PointLight(0xffd2a0,0,3,1.5); scene.add(key); // 寄りの時だけ灯す、人形劇の手持ちの明かり
   // 素材サイトの家具（Poly Haven, CC0）。届いたら仮の箱と差し替える
   import("./props.js").then(({default:PR})=>{ const L=new GLTFLoader().setMeshoptDecoder(MeshoptDecoder), hide=a=>{ for(const m of [].concat(a||[])) m.visible=false; };
-    const put=(k,{x,y,z,ry=0,h,w,cast=true,solid=null},cb)=>L.load(PR[k],gl=>{ const o=gl.scene; o.traverse(m=>{ if(m.isMesh){ m.castShadow=cast; m.receiveShadow=true; if(m.material.map) m.material.map.anisotropy=4; } });
+    let nPhoto=0; const put=(k,{x,y,z,ry=0,h,w,cast=true,solid=null},cb)=>L.load(PR[k],gl=>{ const o=gl.scene; o.traverse(m=>{ if(m.isMesh){ if(/canvas$/.test(m.material.name)){ m.material=new T.MeshStandardMaterial({map:PHOTO[nPhoto++%2],roughness:0.55}); } m.castShadow=cast; m.receiveShadow=true; if(m.material.map) m.material.map.anisotropy=4; } });
         const bb=new T.Box3().setFromObject(o), sz=bb.getSize(new T.Vector3()), k2=h?h/sz.y:w/Math.max(sz.x,sz.z); o.scale.setScalar(k2);
         const c=bb.getCenter(new T.Vector3()); const g=new T.Group(); o.position.set(-c.x*k2,-bb.min.y*k2,-c.z*k2); g.add(o); g.position.set(x,y,z); g.rotation.y=ry; scene.add(g); if(cb) cb(g); });
     put("table",{x:3.6,y:0,z:2.6,w:1.1},()=>hide(PH.table));
@@ -350,6 +371,40 @@ export function build3D(){
     put("frame1",{x:2.96,y:1.5,z:9.4,ry:-Math.PI/2,h:0.5,cast:false});
     put("frame2",{x:11.2,y:floorAt(11.2,15.5)+1.5,z:15.96,ry:Math.PI,h:0.7,cast:false});
     put("frame1",{x:14.8,y:floorAt(14.8,15.5)+1.6,z:15.96,ry:Math.PI,h:0.55,cast:false}); });
+  // 扁額と屏風：洋館の中に、和のものが少しだけ紛れている
+  { const fT=tex(512,160,(g,w,h)=>{ g.fillStyle="#2a1a0e"; g.fillRect(0,0,w,h); g.fillStyle="#d9c9a0"; g.fillRect(14,14,w-28,h-28); noise(g,w,h,24);
+      g.fillStyle="#1a0f08"; g.font="bold 92px 'Shippori Mincho B1','Hiragino Mincho ProN','Yu Mincho',serif"; g.textAlign="center"; g.textBaseline="middle"; g.fillText("寂 然",w/2,h/2+4);
+      g.fillStyle="#8a1c14"; g.fillRect(w-70,h-62,30,30); });
+    fT.colorSpace=T.SRGBColorSpace; const hg=new T.Mesh(new T.BoxGeometry(1.3,0.42,0.05),[M.wood,M.wood,M.wood,M.wood,new T.MeshStandardMaterial({map:fT,roughness:0.8}),M.wood]); hg.position.set(18.3,3.05,7.96); hg.rotation.y=Math.PI; hg.rotation.x=-0.08; scene.add(hg);
+    const sT=tex(512,256,(g,w,h)=>{ const gd=g.createLinearGradient(0,0,w,h); gd.addColorStop(0,"#b8913a"); gd.addColorStop(0.5,"#d8b45a"); gd.addColorStop(1,"#a07c2c"); g.fillStyle=gd; g.fillRect(0,0,w,h);
+      g.strokeStyle="rgba(120,90,30,.35)"; for(let x=0;x<w;x+=36) for(let y=0;y<h;y+=36) g.strokeRect(x,y,36,36);
+      g.strokeStyle="#2a2014"; g.lineWidth=7; g.lineCap="round"; g.beginPath(); g.moveTo(60,250); g.bezierCurveTo(90,170,70,120,140,80); g.bezierCurveTo(200,50,250,70,300,40); g.stroke();
+      g.fillStyle="#1f3a24"; for(const [x,y,r] of [[140,80,40],[220,60,46],[300,40,36],[100,150,30],[360,70,30]]){ g.beginPath(); g.ellipse(x,y,r,r*0.45,0,0,7); g.fill(); }
+      g.strokeStyle="rgba(40,30,20,.5)"; g.lineWidth=2; for(let i=1;i<4;i++){ g.beginPath(); g.moveTo(i*w/4,0); g.lineTo(i*w/4,h); g.stroke(); } noise(g,w,h,20); });
+    sT.colorSpace=T.SRGBColorSpace; const sM=new T.MeshStandardMaterial({map:sT,roughness:0.45,metalness:0.3,side:T.DoubleSide});
+    for(let i=0;i<4;i++){ const pnl=new T.Mesh(new T.PlaneGeometry(0.33,1.45),sM); const uv=pnl.geometry.attributes.uv; for(let k=0;k<uv.count;k++) uv.setX(k,(uv.getX(k)+i)/4);
+      pnl.position.set(21.86-(i%2)*0.12,3+0.74,10.55+i*0.31); pnl.rotation.y=-Math.PI/2+(i%2?0.35:-0.35); pnl.castShadow=true; scene.add(pnl);
+      const fr=new T.Mesh(new T.BoxGeometry(0.34,0.04,0.03),M.wood); fr.position.copy(pnl.position); fr.position.y=3+1.48; fr.rotation.y=pnl.rotation.y; scene.add(fr); }
+    OBST.push([21.6,10.35,22,11.65]); }
+  // ---------- 物が生きている：灯りが去ると、椅子がこちらを向く。肖像の顔が目で追う。吊した服が揺れる ----------
+  { const A={c:null,next:8,back:false,step:0};
+    const watched=c=>PATROLS.some(P=>Math.hypot(P.x-c.position.x,P.z-c.position.z)<5.5&&Math.abs(floorAt(P.x,P.z)-c.position.y)<1.5);
+    const turn=(c,to,k)=>{ let d=((to-c.rotation.y)%(Math.PI*2)+Math.PI*3)%(Math.PI*2)-Math.PI; const s=clamp(d,-k,k); c.rotation.y+=s; return Math.abs(d)-Math.abs(s); };
+    FLICK.push(t=>{ if(S.state!=="walk") return;
+      const decoys=CHAIRS.filter(c=>c!==me&&c.parent);
+      for(const c of decoys) if(c.userData.ry0===undefined) c.userData.ry0=c.rotation.y;
+      if(!A.c&&t>A.next){ let best=null, bd=9; for(const c of decoys){ const d=Math.hypot(c.position.x-W.px,c.position.z-W.pz); if(d>1.3&&d<5&&d<bd&&!watched(c)&&Math.abs(c.position.y-floorAt(W.px,W.pz))<1){ bd=d; best=c; } }
+        if(best&&!PATROLS.some(P=>Math.hypot(P.x-W.px,P.z-W.pz)<6)){ A.c=best; A.back=false; A.step=0; } else A.next=t+2; }
+      if(A.c){ const c=A.c; A.step++;
+        if(watched(c)&&!A.back){ // 見られる前に、元の向きへがたりと戻る
+          A.back=true; c.rotation.y=c.userData.ry0; woodKnock(0.55); thump(0.2); A.c=null; A.next=t+12+Math.random()*10;
+          if(PATROLS.some(P=>Math.hypot(P.x-c.position.x,P.z-c.position.z)<4.5)) say("……今、何か鳴ったかしら。"); return; }
+        const far=Math.hypot(c.position.x-W.px,c.position.z-W.pz)>6.5;
+        const to=far?c.userData.ry0:Math.atan2(W.px-c.position.x,W.pz-c.position.z);
+        if(A.step%3===0){ const left=turn(c,to,0.16); if(left>0.01){ woodKnock(0.12); if(!W.said.alive&&!far&&A.step>9){ W.said.alive=1; say("（……向こうの椅子が、こちらを見ている）"); } } else if(far){ A.c=null; A.next=t+10; } } }
+      for(const q of PORTS){ const dx=W.px-q.x, dz=W.pz-q.z, d=Math.hypot(dx,dz); const rx=Math.cos(q.ry), rz=-Math.sin(q.ry);
+        const want=d<6?clamp((dx*rx+dz*rz)/Math.max(d,0.5),-1,1)*-0.09:0; q.o+=(want-q.o)*0.2; q.tx.offset.x=q.o; }
+      for(const h of HANG){ const d=Math.hypot(W.px-2.5,W.pz-h.z); if(d<1.2&&S.t-W.moveT<0.5) h.a=Math.min(0.25,h.a+0.05); h.a*=0.93; h.m.rotation.z=Math.sin(t*3+h.z)*h.a; } }); }
   R3={T,scene,ren,cam,me,M,post,key,FLICK,MOTES,shadowFor}; window.__R3=R3; W.built=true; walkResize(); }
 
 export function walkResize(){ if(R3){ R3.ren.setSize(innerWidth,innerHeight,false); R3.cam.aspect=innerWidth/innerHeight; R3.cam.updateProjectionMatrix(); R3.post.resize(); }
@@ -399,10 +454,21 @@ export const NOTICE=1.3; // 女中が立ち止まってから、見咎めるま�
 export let CHECK=null;
 export function clearCheck(){ CHECK=null; }
 PATROLS.forEach(P=>{ P.i0=P.i; });
+// 場面に入るたび、場所の名を縦の活字で掲げ、奥様への手紙の一節を綴る
+const PLACE={R:["応接間","奥様。夜会の果てた応接間に、私と同じ形の椅子が、何脚も、行儀よく並んでおりました。"],
+  F:["表の廊下","廊下は長く、月の光が、床の上に窓の形を落としておりました。私はその明るみを、恐る恐る避けて歩いたのでございます。"],
+  H:["階段の広間","吹抜けの大階段の上に、奥様の書斎の灯りが、細く洩れておりました。"],
+  U:["二階の廊下","二階の廊下では、見知らぬ方々の白い顔が、額の中から、じっと私を見下ろしておりました。"],
+  S:["使用人の通路","使用人の通路の壁には、女中たちの黒い服が、まるで人の《抜け殻》のように、釘に吊されておりました。"],
+  B:["裏の階段","裏の階段は暗く、私は一段上るごとに、我と我が身の浅ましさを呪いました。"]};
+const placeEl=$("place");
+export function placeCard(id){ const p=PLACE[id]; if(!p) return; placeEl.firstElementChild.textContent=p[0]; placeEl.classList.add("on");
+  clearTimeout(placeEl._t); placeEl._t=setTimeout(()=>placeEl.classList.remove("on"),3200);
+  setTimeout(()=>{ if(S.state==="walk"&&!W.noticeP) say(p[1]); },900); }
 export function startWalk(done,from){
   if(!W.built) build3D();
   Object.assign(W,{on:true,done,x:START.x,z:START.z,yaw:START.yaw,px:START.x,pz:START.z,pyaw:START.yaw,vx:START.x,vz:START.z,vyaw:START.yaw,last:0,lastT:-9,moveT:-9,wob:0,lift:0,side:0,q:0,inK:0,
-    notice:0,noticeP:null,pardon:0,pardonCd:0,pardonLit:false,insT:0,insK:"",insD:1,nStep:0,stepT:0,cam:null,camId:"",mapYaw:0,litPass:0,povT:0,povP:null,povCd:6,grace:2,arrived:false,said:{},idle:0,hint:0,cue:false});
+    notice:0,noticeP:null,pardon:0,pardonCd:0,pardonLit:false,insT:0,insK:"",insD:1,nStep:0,stepT:0,cam:null,camId:"",mapYaw:0,litPass:0,povT:0,povP:null,povCd:6,grace:2,arrived:false,said:{},idle:0,hint:0,cue:false,seen:{}});
   PATROLS.forEach((P,k)=>{ P.i=P.i0; Object.assign(P,{x:P.route[P.i][0],z:P.route[P.i][1],dir:1,wait:k===0?3:1,yaw:0,lyaw:0,tyaw:0,st:0,alert:null,q:0}); P.i=Math.min(P.i+1,P.route.length-1); });
   if(from){ Object.assign(W,{x:from.x,z:from.z,yaw:from.yaw,px:from.x,pz:from.z,pyaw:from.yaw,vx:from.x,vz:from.z,vyaw:from.yaw,pardon:from.pardon,grace:2.5,camId:"",cam:null,said:{rule:1,near:1,first:1}});
     // 続きから：女中たちはその場面に入った時の所から。ただし近くにいる者は、道筋の一番遠い端へ下がらせておく
@@ -415,7 +481,7 @@ export function startWalk(done,from){
   if(!W.clock){ const k=play("clock",0,1,0,true); if(k) W.clock=k; }
   walkResize(); wc.hidden=false; seamEl.hidden=false; wfade.style.opacity=0; document.body.classList.add("walking"); S.state="walk"; S.sitter=null; S.blobs=[]; S.w=0;
   $("bb").innerHTML='じっとする<small>押している間 / Space</small>';
-  say("そろり、そろり。……足音がしたら、ただの椅子に戻るのです。"); }
+  if(!from) say("（そろり、そろり。……足音が致しましたら、私はただの椅子に戻るのでございます）"); }
 export function hideWalk(){ if(!W.on&&wc.hidden) return; W.on=false; if(W.clock){ try{ W.clock.s.stop(); }catch(e){} W.clock=null; } wc.hidden=true; seamEl.hidden=true; wfade.style.opacity=0; document.body.classList.remove("walking");
   $("bl").innerHTML=BTN.bl; $("bb").innerHTML=BTN.bb; $("br").innerHTML=BTN.br; bb.classList.remove("cue"); }
 export function legThud(){ thump(0.25); woodKnock(0.4); W.nStep=(W.nStep||0)+1; if(W.nStep%3===0) leatherSquish(0.1,0.4); }
@@ -515,6 +581,7 @@ export function walkRender(dt){ const cam=R3.cam, T=R3.T; if(R3.syncWall) R3.syn
   // 画面は12コマで刻む：コマが替わる時だけ視点を動かし、描く
   const fr=Math.floor(S.t*12), tick=fr!==W.frame; W.frame=fr;
   const cf=camFor(W.px,W.pz); if(!W.cam||cf.id!==W.camId){ R3.shadowFor&&R3.shadowFor(cf.id); R3.ren.clippingPlanes=CLIP[cf.id]||[];
+    if(S.state==="walk"&&!W.seen[cf.id]){ W.seen[cf.id]=1; placeCard(cf.id); }
     if(W.camId&&S.state==="walk"&&!W.arrived&&!W.noticeP&&!(CHECK&&CHECK.id===cf.id)){ CHECK={id:cf.id,x:W.x,z:W.z,yaw:W.yaw,pardon:W.pardon,pats:PATROLS.map(P=>({x:P.x,z:P.z,i:P.i,dir:P.dir,wait:P.wait,yaw:P.yaw,lyaw:P.lyaw,tyaw:P.tyaw}))}; }
     W.camId=cf.id; W.cam={p:new T.Vector3(...cf.p),l:new T.Vector3(...cf.l)}; }
   else if(tick){ W.cam.p.lerp(new T.Vector3(...cf.p),0.25); W.cam.l.lerp(new T.Vector3(...cf.l),0.25); }
