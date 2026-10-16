@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "models": "python3 -c \"import sys; sys.argv=['x','--','blender/chair-raw.glb']; exec(open('blender/chair.py').read())\" && python3 -c \"import sys; sys.argv=['x','--','blender/maid-raw.glb']; exec(open('blender/maid.py').read())\" && gltf-transform meshopt blender/chair-raw.glb src/models/chair.glb && gltf-transform meshopt blender/maid-raw.glb src/models/maid.glb"
+    "models": "python3 -c \"import sys; sys.argv=['x','--','blender/chair-raw.glb']; exec(open('blender/chair.py').read())\" && python3 -c \"import sys; sys.argv=['x','--','blender/maid-raw.glb']; exec(open('blender/maid.py').read())\" && gltf-transform meshopt blender/chair-raw.glb src/models/chair.glb && gltf-transform meshopt blender/maid-raw.glb src/models/maid.glb && python3 -c \"import sys; sys.argv=['x','--','blender/room-raw.glb','blender/room_lm.png','384']; exec(open('blender/room.py').read())\" && gltf-transform meshopt blender/room-raw.glb src/models/room.glb && python3 -c \"from PIL import Image; Image.open('blender/room_lm.png').convert('RGB').save('public/tex/room_lm.jpg',quality=88)\""
   },
   "dependencies": {
     "n8ao": "2.0.1",

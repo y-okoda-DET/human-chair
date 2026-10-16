@@ -5,6 +5,7 @@ import { makePost } from "./post.js";
 // 模型は本体のJSに埋め込む（公開先が .glb を配れないため）
 import chairGlb from "./models/chair.glb?inline";
 import maidGlb from "./models/maid.glb?inline";
+import roomGlb from "./models/room.glb?inline";
 import { A, creak, leatherSquish, noiseBurst, play, scrape, thump, woodKnock } from "./audio.js";
 import { $, S, bb, say } from "./state.js";
 
@@ -109,11 +110,12 @@ export function build3D(){
     for(const [v,uv] of vs){ Gx.p.push(...v); Gx.n.push(...n); Gx.u.push(...uv); } };
   const mk=(Gx,mat,rs=true)=>{ const g=new T.BufferGeometry(); g.setAttribute("position",new T.Float32BufferAttribute(Gx.p,3)); g.setAttribute("normal",new T.Float32BufferAttribute(Gx.n,3)); g.setAttribute("uv",new T.Float32BufferAttribute(Gx.u,2));
     const m=new T.Mesh(g,mat); m.receiveShadow=rs; scene.add(m); return m; };
-  const gW=G(), gF=G(), gC=G(), gCar=G(), gR=G();
+  const gW0=G(), gF0=G(), gC0=G(), gCar=G(), gR=G(), bW=G(), bF=G(), bC=G(); // b…：光を焼き込んだ部屋（応接間と表の廊下）の仮の面
   const wall=(Gx,x1,z1,x2,z2,b1,b2,t1,t2,n,fl1,fl2)=>{ const u1=x1+z1,u2=x2+z2; quad(Gx,[x1,b1,z1],[x2,b2,z2],[x2,t2,z2],[x1,t1,z1],n,[u1,(b1-fl1)/3.2],[u2,(b2-fl2)/3.2],[u2,(t2-fl2)/3.2],[u1,(t1-fl1)/3.2]); };
   const rail=(x1,z1,x2,z2,f1,f2,n)=>{ wall(gR,x1,z1,x2,z2,f1+0.86,f2+0.86,f1+0.94,f2+0.94,n,0,0); const L=Math.hypot(x2-x1,z2-z1), k=Math.max(2,Math.round(L/0.22));
     for(let i=0;i<=k;i++){ const t=i/k, x=x1+(x2-x1)*t, z=z1+(z2-z1)*t, f=f1+(f2-f1)*t, dx=(z2-z1)/L*0.03, dz=(x2-x1)/L*0.03; wall(gR,x-dz,z-dx,x+dz,z+dx,f,f,f+0.88,f+0.88,n,0,0); } };
   for(let z=0;z<MAP.length;z++) for(let x=0;x<MAP[z].length;x++){ const c=MAP[z][x]; if(c==="#") continue;
+    const bk=BAKED.includes(c), gF=bk?bF:gF0, gC=bk?bC:gC0, gW=bk?bW:gW0;
     // 床（大階段と裏階段は段に刻む）
     if(c==="s"||c==="B"){ const Gx=c==="s"?gCar:gF; for(let k=0;k<4;k++){ if(c==="s"){ const z0=z+k/4,z1=z+(k+1)/4, y=floorOf(c,x,z1), y0=floorOf(c,x,z0);
           quad(Gx,[x,y,z0],[x+1,y,z0],[x+1,y,z1],[x,y,z1],[0,1,0],[0,0],[1,0],[1,0.25],[0,0.25]); quad(Gx,[x,y0,z0],[x+1,y0,z0],[x+1,y,z0],[x,y,z0],[0,0,-1],[0,0],[1,0],[1,0.1],[0,0.1]); }
@@ -129,7 +131,17 @@ export function build3D(){
       if(nf1-f1>0.15||nf2-f2>0.15) wall(gW,x1,z1,x2,z2,f1,f2,Math.max(f1,nf1),Math.max(f2,nf2),n,f1,f2);
       if(f1-nf1>0.15||f2-nf2>0.15) rail(x1+dx*0.05,z1+dz*0.05,x2+dx*0.05,z2+dz*0.05,f1,f2,n);
       if(nc1<c1-0.05||nc2<c2-0.05) wall(gW,x1,z1,x2,z2,Math.max(nc1,f1),Math.max(nc2,f2),c1,c2,n,f1,f2); } }
-  mk(gW,M.wall); mk(gF,M.floor); mk(gC,M.ceil,false); mk(gCar,M.carpet); mk(gR,M.wood);
+  mk(gW0,M.wall); mk(gF0,M.floor); mk(gC0,M.ceil,false);
+  // 焼き込んだ部屋が届くまでの仮の面。届いたら隠す
+  const fallback=[mk(bW,M.wall),mk(bF,M.floor),mk(bC,M.ceil,false)];
+  if(new URLSearchParams(location.search).get("room")!=="0") new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).load(roomGlb,gl=>{ const lm=TL.load("./tex/room_lm.jpg",()=>{
+      lm.colorSpace=T.SRGBColorSpace; lm.channel=1; lm.flipY=false;
+      const base={floor:M.floor,wall:M.wall,ceil:M.ceil}, made={};
+      gl.scene.traverse(o=>{ if(!o.isMesh) return; const k=o.material.name; if(!made[k]){ const m=base[k].clone(); m.lightMap=lm; m.lightMapIntensity=LM_INT*(k==="ceil"?0.6:1); made[k]=m; }
+        o.material=made[k]; o.receiveShadow=true; });
+      // 壁の模様は後から描き上がるので、描き上がったら写す
+      if(made.wall){ const sync=()=>{ if(M.wall.map!==made.wall.map){ made.wall.map=M.wall.map; made.wall.normalMap=M.wall.normalMap; made.wall.needsUpdate=true; } }; sync(); R3.syncWall=sync; }
+      scene.add(gl.scene); for(const f of fallback) f.visible=false; }); }); mk(gCar,M.carpet); mk(gR,M.wood);
   // 家具
   const box=(w,h,d,mat,x,y,z,ry=0,solid=true,cast=true)=>{ const m=new T.Mesh(new T.BoxGeometry(w,h,d),mat); m.position.set(x,y+h/2,z); m.rotation.y=ry; m.castShadow=cast; m.receiveShadow=true; scene.add(m);
     if(solid){ const hw=(Math.abs(Math.cos(ry))*w+Math.abs(Math.sin(ry))*d)/2, hd=(Math.abs(Math.sin(ry))*w+Math.abs(Math.cos(ry))*d)/2; OBST.push([x-hw,z-hd,x+hw,z+hd]); } return m; };
@@ -261,6 +273,9 @@ export function autoStep(wx,wz,rush){ if(S.state!=="walk"||W.arrived) return;
 export function arriveCheck(){ if(cellAt(W.x,W.z)==="D"&&!W.arrived){ W.arrived=true; S.sus*=0.5; say("（書斎の扉の前に、辿り着いた。私は、元の椅子に戻った）"); wfade.style.opacity=1; setTimeout(()=>{ const d=W.done; hideWalk(); d&&d(); },2600); } }
 // 人形の手ぶれ：こまごとに、ほんの僅か位置と角度が揺らぐ
 const jit=a=>(Math.random()-0.5)*2*a;
+// 光を焼き込んだ部屋と、焼いた光の強さ
+export const BAKED="RF";
+const LM_INT=Number(new URLSearchParams(location.search).get("lm"))||2.0;
 export const START={x:3.2,z:4.1,yaw:Math.PI/2};
 export const PARDON=2; // 置き場の外で、動かずにいて見逃される回数
 export const NOTICE=1.3; // 女中が立ち止まってから、見咎めるまでの秒
@@ -359,7 +374,7 @@ export function walkUpdate(dt){
     { const br=S.hold||W.noticeP?0:Math.sin(S.t*1.7)*Math.min(1,W.idle), bk=me.userData.back; bk.scale.set(1+br*0.02,1+br*0.025,1+br*0.22); }
     me.userData.legs.forEach((l,i)=>{ const left=i%2===0; l.position.y=l.userData.y0+((W.side<0)===left&&i<2?W.lift*0.08:0); }); }
   walkRender(dt); }
-export function walkRender(dt){ const cam=R3.cam, T=R3.T;
+export function walkRender(dt){ const cam=R3.cam, T=R3.T; if(R3.syncWall) R3.syncWall();
   const fx=Math.sin(W.pyaw), fz=Math.cos(W.pyaw), fy=floorAt(W.px,W.pz);
   // 動いている間は定点から覗き、息を殺せば椅子の中から
   const want=S.hold&&S.state==="walk"?1:0; W.inK+=(want-W.inK)*Math.min(1,dt*(want?2.6:5));
