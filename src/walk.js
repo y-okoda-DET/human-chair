@@ -187,7 +187,7 @@ export function build3D(){
   // 表の廊下
   cabinet(9.0,3.24,0); settee(12.0,4.68,Math.PI); cabinet(15.1,3.24,0);
   // 階段の広間：大時計と椅子の列
-  { const y=0; box(0.55,2.2,0.4,M.wood,16.32,y,7.55); const d=new T.Mesh(new T.CircleGeometry(0.17,20),new T.MeshBasicMaterial({color:0xcdbb90})); d.position.set(16.32,1.75,7.34); d.rotation.y=Math.PI; scene.add(d); }
+  { const y=0, cb=box(0.55,2.2,0.4,M.wood,16.32,y,7.55); const d=new T.Mesh(new T.CircleGeometry(0.17,20),new T.MeshBasicMaterial({color:0xcdbb90})); d.position.set(16.32,1.75,7.34); d.rotation.y=Math.PI; scene.add(d); PH.gclock=[cb,d]; }
   for(const x of [16.8,18.4]){ const c=makeChair(M.leather2); c.position.set(x,0,1.42); scene.add(c); OBST.push([x-0.36,1.06,x+0.36,1.78]); }
   // 二階の廊下
   cabinet(18.24,10.5,Math.PI/2); { const c=makeChair(M.leather2); c.position.set(21.58,3,13.2); c.rotation.y=-Math.PI/2; scene.add(c); OBST.push([21.22,12.84,21.94,13.56]); }
@@ -267,7 +267,7 @@ export function build3D(){
   const glowT=tex(64,64,(g,w,h)=>{ const gr=g.createRadialGradient(32,32,0,32,32,32); gr.addColorStop(0,"rgba(255,225,170,1)"); gr.addColorStop(0.1,"rgba(255,190,110,.55)"); gr.addColorStop(0.35,"rgba(255,160,70,.14)"); gr.addColorStop(1,"rgba(255,150,60,0)"); g.fillStyle=gr; g.fillRect(0,0,w,h); });
   const glowM=new T.SpriteMaterial({map:glowT,blending:T.AdditiveBlending,depthWrite:false,fog:true,opacity:0.35});
   const glow=(x,y,z,s)=>{ s*=0.45; const sp=new T.Sprite(glowM); sp.position.set(x,y,z); sp.scale.set(s,s,1); scene.add(sp); const b=new T.Mesh(new T.SphereGeometry(0.035,6,5),M.glowY); b.position.set(x,y,z); scene.add(b); return sp; };
-  const LIGHTS=[[3.5,2.7,3.6,0xffa860,1.1,8],[11.5,2.5,4,0xff9a50,0.9,7],[18.2,5.2,4.6,0xffb070,1.8,11],[20,5.4,12,0xffa860,1.0,9],[2.5,2.9,12.5,0xd8c8a0,0.6,6],[20,4.4,18.4,0xffc080,1.2,5],[2.7,2.2,10,0xffa060,0.7,5],[12,3.3,15.6,0xffa060,0.8,6]];
+  const LIGHTS=[[3.5,2.7,3.6,0xffa860,1.1,8],[11.5,2.5,4,0xff9a50,0.9,7],[18.2,4.4,4.6,0xffb070,2.6,14],[20,5.4,12,0xffa860,1.0,9],[2.5,2.9,12.5,0xd8c8a0,0.6,6],[20,4.4,18.4,0xffc080,1.2,5],[2.7,2.2,10,0xffa060,0.7,5],[12,3.3,15.6,0xffa060,0.8,6]];
   // 場面ごとに一灯だけ影を落とす（全部に落とすと重い）
   const SHL={R:0,F:1,H:2,U:3,S:6,B:7}, LOBJ=LIGHTS.map(([x,y,z,c,i,d])=>{ const l=new T.PointLight(c,i*Math.PI,d,1.6); l.position.set(x,y,z); l.shadow.mapSize.set(512,512); l.shadow.bias=-0.004; l.shadow.radius=3; l.shadow.camera.near=0.1; scene.add(l); return l; });
   const shadowFor=id=>LOBJ.forEach((l,i)=>{ l.castShadow=SHL[id]===i; });
@@ -322,6 +322,7 @@ export function build3D(){
     put("plant",{x:15.6,y:0,z:4.7,h:0.95},()=>hide(PH.plant));
     put("plant",{x:21.6,y:3,z:17.5,h:1.05},()=>hide(PH.plant2));
     for(const c of PH.cab){ put("cabinet",{x:c.x,y:c.y,z:c.z,ry:c.ry,w:1.15},()=>hide(c.m)); put("lamp",{x:c.x+0.3*Math.cos(c.ry),y:c.y+1.24,z:c.z-0.3*Math.sin(c.ry),h:0.42}); }
+    put("gclock",{x:16.32,y:0,z:7.62,ry:Math.PI,h:1.95},()=>hide(PH.gclock));
     put("clock",{x:6.76,y:1.25,z:1.7,ry:-Math.PI/2,h:0.32});
     put("frame2",{x:6.96,y:1.55,z:4.1,ry:-Math.PI/2,h:0.8,cast:false});
     put("frame1",{x:5.7,y:1.6,z:6.97,ry:Math.PI,h:0.6,cast:false});

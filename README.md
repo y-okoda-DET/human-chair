@@ -41,7 +41,7 @@ npm run build      # dist/ に書き出す
 写真の質感と録った物音は、どれも CC0（パブリックドメイン）です。帰属表示は不要ですが、作者を記します。
 
 - 質感（Poly Haven）：fabric_leather_02（Rob Tuytel）、herringbone_parquet（Jenelle van Heerden, Sergej Majboroda）、quatrefoil_jacquard_fabric・floral_jacquard（colormass, Rico Cilliers）、wood_table_001（Dimitrios Savva, Rico Cilliers）、wooden_panels（Dimitrios Savva）、HDRI brown_photostudio_01（Sergej Majboroda）
-- 家具（Poly Haven）：round_wooden_table_01（Ulan Cabanilla）、brass_candleholders（Tina）、Chandelier_01（Kirill Sannikov）、potted_plant_02（Rico Cilliers）、vintage_cabinet_01（Rico Cilliers）、vintage_oil_lamp（Monsta3D）、mantel_clock_01（Yann Kervran, Rico Cilliers）、fancy_picture_frame_01・02（Rob Tuytel, Rico Cilliers）、side_table_tall_01（James Ray Cock）
+- 家具（Poly Haven）：round_wooden_table_01（Ulan Cabanilla）、brass_candleholders（Tina）、Chandelier_01（Kirill Sannikov）、potted_plant_02（Rico Cilliers）、vintage_cabinet_01（Rico Cilliers）、vintage_oil_lamp（Monsta3D）、mantel_clock_01（Yann Kervran, Rico Cilliers）、fancy_picture_frame_01・02（Rob Tuytel, Rico Cilliers）、side_table_tall_01（James Ray Cock）、vintage_grandfather_clock_01（Yann Kervran, James Ray Cock）
 - 真鍮（ambientCG）：Metal048B
 - 物音（freesound）：kyles #637353、badbear904 #702165、Crinkem #501015、IENBA #536187、Joao_Janz #485145、ftpalad #119914、blukotek #412751
 
