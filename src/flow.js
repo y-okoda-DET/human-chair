@@ -63,7 +63,7 @@ export function finish(caught){ hideWalk(); $("fin").hidden=true; $("pick").hidd
   let html="";
   const reasons=Object.entries(S.log).map(([k,v])=>`${k}が${kan(v)}度`).join("、");
   if(caught){ html+=`<p>${S.sitter?S.sitter.name:"何者か"}が立ち上がり、蓋を開けたのでございます。${reasons?`${reasons}。それで十分でした。`:""}</p>`; if(S.frags.length) html+=`<p>書きかけの手紙には、こう記してありました。</p>`; }
-  else { html+=`<p>奥様。私は三夜の間、この椅子の胴の中で、${n}人の重みを知ったのでございます。</p>`; if(reasons) html+=`<p class="k">（${reasons}。それでも、気づかれはしませんでした。）</p>`; }
+  else { html+=`<p>奥様。私は三夜の間、この椅子の胴の中で、${kan(n)}人の重みを知ったのでございます。</p>`; if(reasons) html+=`<p class="k">（${reasons}。それでも、気づかれはしませんでした。）</p>`; }
   if(caught) for(const [i,f] of S.frags.entries()) html+=`<p><b>${S.seen[i].name}</b>（${S.seen[i].kg}kg）。${f}</p>`;
   else for(const l of letterOf()) html+=`<p><b>${l.name}</b>。${l.frag}</p>`;
   if(!caught) html+=`<p>追伸。この椅子は些か固い、と皆様が仰います。</p>`;
