@@ -38,5 +38,6 @@ $("save").addEventListener("click",async()=>{ const b=S.cardBlob; if(!b){ $("toa
   try{ if(navigator.canShare&&navigator.canShare({files:[file]})){ await navigator.share({files:[file],text:S.share}); return; } }catch(e){ if(e&&e.name==="AbortError") return; }
   try{ const a=document.createElement("a"); a.href=URL.createObjectURL(b); a.download="ningen-isu.png"; document.body.appendChild(a); a.click(); a.remove(); }catch(e){}
   $("toast").textContent="保存されない時は、画像を長押ししてください。"; });
+$("xshare").addEventListener("click",()=>{ window.open("https://x.com/intent/post?text="+encodeURIComponent(S.share||""),"_blank","noopener"); });
 $("copy").addEventListener("click",()=>{ const t=S.share||""; const done=()=>{$("toast").textContent="写し取りました。";};
   const fb=()=>{ $("toast").textContent=t; }; if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(t).then(done).catch(fb); else fb(); });

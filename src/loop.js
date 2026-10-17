@@ -8,9 +8,14 @@ import { CHECK, PATROLS, R3, SPOTS, W, heard, inPlace, walkCaught, walkRender, w
 
 // 夫人の目で読む便箋
 const paper=document.getElementById("paper"), paperIn=document.getElementById("paperin");
-export function paperLine(t){ if(t==="§"){ paper.classList.add("shake"); setTimeout(()=>{ paper.classList.remove("on","shake"); setTimeout(()=>{ paper.hidden=true; paperIn.innerHTML=""; },1400); },900); return; }
-  if(paper.hidden){ paper.hidden=false; paperIn.innerHTML=""; say(""); requestAnimationFrame(()=>paper.classList.add("on")); }
-  const p=document.createElement("p"); p.innerHTML=t; paperIn.appendChild(p); rustle(); requestAnimationFrame(()=>requestAnimationFrame(()=>p.classList.add("on"))); }
+let paperK=0;
+function paperFit(){ let f=parseFloat(getComputedStyle(paperIn).fontSize); while(paperIn.scrollWidth>paperIn.clientWidth+1&&f>10){ f-=0.5; paperIn.style.fontSize=f+"px"; } }
+export function paperLine(t,all){ if(t==="§"){ paper.classList.add("shake"); setTimeout(()=>{ paper.classList.remove("on","shake"); setTimeout(()=>{ paper.hidden=true; paperIn.innerHTML=""; paperIn.style.fontSize=""; },1400); },900); return; }
+  if(paper.hidden){ paper.hidden=false; paperIn.innerHTML=""; paperIn.style.fontSize=""; paperK=0; say("");
+    for(const x of (all||[t])){ const p=document.createElement("p"); p.innerHTML=x; paperIn.appendChild(p); }
+    paperFit(); requestAnimationFrame(()=>paper.classList.add("on")); }
+  let p=paperIn.children[paperK]; if(!p||p.innerHTML!==t){ p=document.createElement("p"); p.innerHTML=t; paperIn.appendChild(p); paperFit(); } paperK=[...paperIn.children].indexOf(p)+1;
+  rustle(); requestAnimationFrame(()=>requestAnimationFrame(()=>p.classList.add("on"))); }
 // ---------- Update ----------
 export let last=performance.now();
 export function update(now){
@@ -20,7 +25,7 @@ export function update(now){
     if(S.steps<=0){ S.steps=0.55+Math.random()*0.2; step(Math.max(0,S.wait)); if(S.wait<2.2&&S.wait>0.4) say("（足音が、こちらへ近づいて来る）",true); }
     if(S.wait<=0){ if(S.queue.length) nextSitter(); else { S.state="between"; endNight(); } } }
   if(sitting){ const st=S.sitter; S.ts+=dt; S.w=Math.min(1,S.w+dt*2.2); S.heat=Math.min(1,S.heat+dt*0.02);
-    while(S.lineIdx<st.lines.length&&st.lines[S.lineIdx][0]<=S.ts){ const l=st.lines[S.lineIdx++][1]; if(l.startsWith("§")){ paperLine(l.slice(1)); continue; } say(l,l.startsWith("（")); if(l.includes("息を呑む")) sting(); if(!l.startsWith("（")&&l!=="……。") murmur(Math.min(9,Math.max(3,Math.round(l.length/3)))); if(l.includes("雑誌")||l.includes("頁")||l.includes("本")) { spot(0.5+Math.random()*0.2-0.1,0.78); rustle(); } if(st.snore&&l.includes("いびき")) thump(0.3); }
+    while(S.lineIdx<st.lines.length&&st.lines[S.lineIdx][0]<=S.ts){ const l=st.lines[S.lineIdx++][1]; if(l.startsWith("§")){ paperLine(l.slice(1),st.lines.map(x=>x[1]).filter(x=>x.startsWith("§")&&x!=="§§").map(x=>x.slice(1))); continue; } say(l,l.startsWith("（")); if(l.includes("息を呑む")) sting(); if(!l.startsWith("（")&&l!=="……。") murmur(Math.min(9,Math.max(3,Math.round(l.length/3)))); if(l.includes("雑誌")||l.includes("頁")||l.includes("本")) { spot(0.5+Math.random()*0.2-0.1,0.78); rustle(); } if(st.snore&&l.includes("いびき")) thump(0.3); }
     if(!S.listen){ for(const lt of st.listen){ if(S.ts>=lt&&S.ts<lt+0.05){ S.listen={t:3.6,held:0,len:3.6}; S.listens++; bb.classList.add("cue");
           say(st.dog?"（獣が、蓋の隙に鼻を寄せている）":(S.listens===1?"（……上の者が、ふと静まった。耳を澄ませている）":"（……ふと、静まった）")); break; } } }
     else { S.listen.t-=dt; if(S.hold) S.listen.held+=dt;
