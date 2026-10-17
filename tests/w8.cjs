@@ -10,7 +10,7 @@ const { chromium } = require('playwright');
   await p.waitForFunction(()=>window.__isu().state==='walk',null,{timeout:8000});
   const st=()=>p.evaluate(()=>{const W=window.__dbg.W,S=window.__isu(); return {t:+S.t.toFixed(1),state:S.state,pardon:W.pardon,noticing:!!W.noticeP,sub:document.getElementById('sub').textContent}});
   const setup=()=>p.evaluate(()=>{ const D=window.__dbg,W=D.W; D.tp(12,4,Math.PI/2); Object.assign(W,{grace:0,moveT:-9,wob:0,notice:0,noticeP:null,povCd:0,povT:0,pardonCd:0});
-     const P=D.PATROLS[0]; Object.assign(P,{x:17.5,z:4,i:2,dir:1,wait:0,alert:null}); D.PATROLS[1].x=2.5;D.PATROLS[1].z=7.6; D.PATROLS[2].z=17; });
+     const P=D.PATROLS[0]; Object.assign(P,{x:17.5,z:4,i:2,dir:1,wait:0,alert:null}); D.PATROLS[1].x=2.5;D.PATROLS[1].z=7.6; });
   const away=()=>p.evaluate(()=>{ const P=window.__dbg.PATROLS[0]; Object.assign(P,{x:19.5,z:7.5,wait:99,alert:null}); });
   const until=async(fn,s)=>{ const t0=(await st()).t; for(;;){ const r=await st(); if(fn(r)||r.t>t0+s) return r; await p.waitForTimeout(100);} };
   for(let k=1;k<=3;k++){ await setup(); const r=await until(r=>r.pardon>=k||r.noticing||r.state!=='walk',14); console.log('encounter',k,r); await away(); await until(()=>false,1.5); }
