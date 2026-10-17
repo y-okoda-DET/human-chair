@@ -3,7 +3,7 @@
 export const $=id=>document.getElementById(id);
 export const sub=$("sub"), susBar=$("sus").firstElementChild, lungBar=$("lung").firstElementChild;
 export let S;
-export function reset(){ S={night:0,snap:null,state:"title",t:0,q:0,queue:[],sitter:null,ts:0,blobs:[],targets:[],w:0,heat:0,lung:0,hold:false,gaspCd:0,drift:0,tilt:0,sus:0,creakCd:0,listen:null,lineIdx:0,spots:[],frags:[],seen:[],beat:0,pulse:0,dark:1,wait:0,steps:0,caught:false,done:false,fidgetT:0,log:{},whyT:0,listens:0}; }
+export function reset(){ S={night:0,snap:null,state:"title",t:0,q:0,queue:[],sitter:null,ts:0,blobs:[],targets:[],w:0,heat:0,lung:0,hold:false,gaspCd:0,drift:0,tilt:0,sus:0,creakCd:0,listen:null,lineIdx:0,spots:[],frags:[],seen:[],beat:0,pulse:0,dark:1,wait:0,steps:0,caught:false,done:false,fidgetT:0,log:{},whyT:0,listens:0,letter:[],picked:false}; }
 reset();
 // 歩く夜は、乱歩の本の頁のように縦に組み、一字ずつ書きつけてゆく。女中の声は「」で括り、それ以外は私の独白として地の文に
 let typeT=null;

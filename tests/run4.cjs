@@ -13,7 +13,7 @@ const { chromium } = require('playwright'); const fs=require('fs');
     const st=await p.evaluate(()=>{const S=window.__isu(); return {state:S.state,night:S.night,seen:S.seen.length,txt:document.getElementById('introp').textContent,introHidden:document.getElementById('intro').hidden};});
     seenStates.add(`${st.state}:${st.night}`); if(!st.introHidden) introTexts.add(st.txt);
     if(st.state==='result') break;
-    if(!st.introHidden) await p.click('#intro'); // 一文ずつ送る
+    if(!st.introHidden) await p.click('#intro'); if(await p.evaluate(()=>!document.getElementById('pick').hidden)) await p.click('#picks button:last-child'); // 一文ずつ送る
     if(st.state==='walk') await p.evaluate(i=>{ const D=window.__dbg; D.W.grace=1e9; if(!D.W.arrived){ D.tp(19.6,17.6,0); window.__isu().t+=1; D.walkStep(i%2?1:-1); } },i);
     await p.waitForTimeout(400);
   }
