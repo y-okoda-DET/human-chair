@@ -5,7 +5,7 @@ import { makePost } from "./post.js";
 import chairGlb from "./models/chair.glb?inline";
 import maidGlb from "./models/maid.glb?inline";
 import roomGlb from "./models/room.glb?inline";
-import { A, creak, leatherSquish, noiseBurst, pen, play, scrape, thump, woodKnock } from "./audio.js";
+import { A, creak, droneLevel, droneStart, droneStop, leatherSquish, noiseBurst, pen, play, scrape, thump, woodKnock } from "./audio.js";
 import { $, S, bb, say } from "./state.js";
 
 // ---------- 椅子歩き（第三夜の頭、一度きり。屋敷の一角を3Dで歩く） ----------
@@ -499,12 +499,12 @@ export function startWalk(done,from){
       let k=0, best=-1; P.route.forEach(([x,z],j)=>{ const d=Math.hypot(x-W.x,z-W.z); if(d>best){ best=d; k=j; } });
       const last=P.route.length-1, n=k===last?k-1:k+1, a=Math.atan2(P.route[n][0]-P.route[k][0],P.route[n][1]-P.route[k][1]);
       Object.assign(P,{x:P.route[k][0],z:P.route[k][1],i:n,dir:k===last?-1:1,wait:3,yaw:a,lyaw:a,tyaw:a}); } }
-  S.lung=0; S.gaspCd=0;
+  S.lung=0; S.gaspCd=0; droneStart();
   if(!W.clock){ const k=play("clock",0,1,0,true); if(k) W.clock=k; }
   walkResize(); wc.hidden=false; seamEl.hidden=false; wfade.style.opacity=0; document.body.classList.add("walking"); S.state="walk"; S.sitter=null; S.blobs=[]; S.w=0;
   $("bb").innerHTML='じっとする<small>押している間 / Space</small>';
   if(!from) say("（そろり、そろり。……足音が致しましたら、私はただの椅子に戻るのでございます）"); }
-export function hideWalk(){ S.near=0; if(!W.on&&wc.hidden) return; W.on=false; if(W.clock){ try{ W.clock.s.stop(); }catch(e){} W.clock=null; } wc.hidden=true; seamEl.hidden=true; wfade.style.opacity=0; document.body.classList.remove("walking");
+export function hideWalk(){ S.near=0; droneStop(); if(!W.on&&wc.hidden) return; W.on=false; if(W.clock){ try{ W.clock.s.stop(); }catch(e){} W.clock=null; } wc.hidden=true; seamEl.hidden=true; wfade.style.opacity=0; document.body.classList.remove("walking");
   $("bl").innerHTML=BTN.bl; $("bb").innerHTML=BTN.bb; $("br").innerHTML=BTN.br; bb.classList.remove("cue"); }
 export function legThud(){ thump(0.25); woodKnock(0.4); W.nStep=(W.nStep||0)+1; if(W.nStep%3===0) leatherSquish(0.1,0.4); }
 // 寄りの差し込み：ここぞという一瞬だけ、椅子の脚や革に寄る
@@ -595,7 +595,7 @@ export function walkUpdate(dt){
   if(S.state==="walk"&&W.idle>0.6){ const s=inPlace(); if(s) saveCheck("spot"+SPOTS.indexOf(s),s.x,s.z); }
   if(S.state==="walk"&&W.idle>1.2){ const s=inPlace(); if(s&&s.l&&!W.said[s.l+s.x]){ W.said[s.l+s.x]=1; say(`（${s.l}、身を寄せた）`,true); } }
   // 書斎が近づくほど、ペンの音が聞こえ、匂いが降り、独白が熱を帯びる（胸の鼓動も早まる）
-  if(S.state==="walk"&&!W.arrived){ const dd=Math.hypot(W.x-STUDY.x,W.z-STUDY.z); S.near=clamp((16-dd)/12,0,1);
+  if(S.state==="walk"&&!W.arrived){ const dd=Math.hypot(W.x-STUDY.x,W.z-STUDY.z); S.near=clamp((16-dd)/12,0,1); droneLevel(S.near);
     W.penT=(W.penT??3)-dt; if(dd<16&&W.penT<=0){ W.penT=2.5+Math.random()*3*(1-S.near*0.6); pen(0.012+S.near*0.07); }
     if(!W.noticeP&&S.t-(W.placeT??-9)>5) for(const [r,k,l] of LURE) if(dd<r&&!W.said[k]){ W.said[k]=1; say(l); break; } }
   if(S.state==="walk"&&W.idle>6&&!W.said.rule){ W.said.rule=1; say("椅子の在るべき所に在る限り、誰も椅子などに目を留めはしませぬ。"); }

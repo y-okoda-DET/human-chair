@@ -1,4 +1,4 @@
-import { A, creak, exhale, gasp, murmur, noiseBurst, rustle, step, thump } from "./audio.js";
+import { A, creak, exhale, gasp, murmur, noiseBurst, rustle, step, sting, thump } from "./audio.js";
 import { beginNight, beginSit, endNight, endSit, finish, nextSitter } from "./flow.js";
 import { keys } from "./input.js";
 import { U, gl, idx } from "./interior.js";
@@ -20,7 +20,7 @@ export function update(now){
     if(S.steps<=0){ S.steps=0.55+Math.random()*0.2; step(Math.max(0,S.wait)); if(S.wait<2.2&&S.wait>0.4) say("（足音が、こちらへ近づいて来る）",true); }
     if(S.wait<=0){ if(S.queue.length) nextSitter(); else { S.state="between"; endNight(); } } }
   if(sitting){ const st=S.sitter; S.ts+=dt; S.w=Math.min(1,S.w+dt*2.2); S.heat=Math.min(1,S.heat+dt*0.02);
-    while(S.lineIdx<st.lines.length&&st.lines[S.lineIdx][0]<=S.ts){ const l=st.lines[S.lineIdx++][1]; if(l.startsWith("§")){ paperLine(l.slice(1)); continue; } say(l,l.startsWith("（")); if(!l.startsWith("（")&&l!=="……。") murmur(Math.min(9,Math.max(3,Math.round(l.length/3)))); if(l.includes("雑誌")||l.includes("頁")||l.includes("本")) { spot(0.5+Math.random()*0.2-0.1,0.78); rustle(); } if(st.snore&&l.includes("いびき")) thump(0.3); }
+    while(S.lineIdx<st.lines.length&&st.lines[S.lineIdx][0]<=S.ts){ const l=st.lines[S.lineIdx++][1]; if(l.startsWith("§")){ paperLine(l.slice(1)); continue; } say(l,l.startsWith("（")); if(l.includes("息を呑む")) sting(); if(!l.startsWith("（")&&l!=="……。") murmur(Math.min(9,Math.max(3,Math.round(l.length/3)))); if(l.includes("雑誌")||l.includes("頁")||l.includes("本")) { spot(0.5+Math.random()*0.2-0.1,0.78); rustle(); } if(st.snore&&l.includes("いびき")) thump(0.3); }
     if(!S.listen){ for(const lt of st.listen){ if(S.ts>=lt&&S.ts<lt+0.05){ S.listen={t:3.6,held:0,len:3.6}; S.listens++; bb.classList.add("cue");
           say(st.dog?"（獣が、蓋の隙に鼻を寄せている）":(S.listens===1?"（……上の者が、ふと静まった。耳を澄ませている）":"（……ふと、静まった）")); break; } } }
     else { S.listen.t-=dt; if(S.hold) S.listen.held+=dt;

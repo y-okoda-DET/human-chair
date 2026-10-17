@@ -81,3 +81,31 @@ export function scrape(g=0.18){ if(play("scrape",g*4,vary())) return; const c=A.
   const v=c.createGain(); v.gain.setValueAtTime(0.0001,t); v.gain.linearRampToValueAtTime(g,t+0.03);
   for(let i=1;i<6;i++) v.gain.linearRampToValueAtTime(g*(i%2?0.3:1),t+0.03+i*0.03); v.gain.exponentialRampToValueAtTime(0.001,t+0.22);
   s.connect(f).connect(v).connect(A.master); s.start(t); s.stop(t+0.25); }
+
+// ---------- 劇伴：場面を絞って、ほんの少しだけ ----------
+// 低い弦の持続音：書斎へ近づくほど、じわりと上がる。弓の擦れを少し混ぜ、ゆっくり揺らす
+export function droneStart(){ const c=A.ctx; if(!c||A.drone) return; const t=c.currentTime;
+  const out=c.createGain(); out.gain.value=0; const lp=c.createBiquadFilter(); lp.type="lowpass"; lp.frequency.value=520; lp.Q.value=0.7; lp.connect(out).connect(A.master);
+  const vib=c.createOscillator(); vib.frequency.value=4.6; const vg=c.createGain(); vg.gain.value=0.9; vib.connect(vg); vib.start(t);
+  const oscs=[[73.42,0],[73.42,6],[110.0,-4],[146.83,3]].map(([f,cents])=>{ const o=c.createOscillator(); o.type="sawtooth"; o.frequency.value=f; o.detune.value=cents; vg.connect(o.frequency); o._d=cents;
+    const g=c.createGain(); g.gain.value=f>140?0.25:0.5; o.connect(g).connect(lp); o.start(t); return o; });
+  const bow=c.createBufferSource(); bow.buffer=A.white; bow.loop=true; const bf=c.createBiquadFilter(); bf.type="bandpass"; bf.frequency.value=900; bf.Q.value=1.2; const bg=c.createGain(); bg.gain.value=0.015; bow.connect(bf).connect(bg).connect(lp); bow.start(t);
+  A.drone={out,lp,oscs,bow,vib}; }
+export function droneLevel(v){ const d=A.drone, c=A.ctx; if(!d) return; const t=c.currentTime;
+  d.out.gain.setTargetAtTime(Math.pow(v,1.6)*0.16,t,0.8); d.lp.frequency.setTargetAtTime(420+v*900,t,0.8);
+  for(const o of d.oscs) o.detune.setTargetAtTime(o._d+v*80,t,2.5); }
+export function droneStop(){ const d=A.drone, c=A.ctx; if(!d) return; A.drone=null; const t=c.currentTime; d.out.gain.setTargetAtTime(0,t,0.4);
+  setTimeout(()=>{ try{ for(const o of d.oscs) o.stop(); d.bow.stop(); d.vib.stop(); }catch(e){} },2500); }
+// 息を呑まれる瞬間：半音でぶつかる弦が、ふくらんで消える
+export function sting(){ const c=A.ctx; if(!c) return; const t=c.currentTime, out=c.createGain(); out.gain.setValueAtTime(0.0001,t); out.gain.exponentialRampToValueAtTime(0.14,t+1.6); out.gain.exponentialRampToValueAtTime(0.0001,t+5.5);
+  const lp=c.createBiquadFilter(); lp.type="lowpass"; lp.frequency.setValueAtTime(500,t); lp.frequency.linearRampToValueAtTime(1600,t+1.6); lp.frequency.linearRampToValueAtTime(400,t+5.5); lp.connect(out).connect(A.master);
+  for(const f of [146.83,155.56,220,233.08]){ const o=c.createOscillator(); o.type="sawtooth"; o.frequency.value=f; const lfo=c.createOscillator(); lfo.frequency.value=5+Math.random(); const lg=c.createGain(); lg.gain.value=f*0.006; lfo.connect(lg).connect(o.frequency);
+    const g=c.createGain(); g.gain.value=0.22; o.connect(g).connect(lp); o.start(t); o.stop(t+5.7); lfo.start(t); lfo.stop(t+5.7); } }
+// 「終」のオルゴール：櫛歯の澄んだ音。最後はぜんまいが緩むように、遅くなる
+export function musicBox(){ const c=A.ctx; if(!c) return; let t=c.currentTime+0.3;
+  const N={E5:659.25,G5:783.99,A5:880,B5:987.77,C6:1046.5,D6:1174.66,E6:1318.51,A4:440,C5:523.25};
+  const tune=[["A5",1],["C6",1],["B5",1],["E5",2],["A5",1],["G5",1],["E5",1],["D6",2],["C6",1],["B5",1],["A5",1],["E5",1],["A4",3]];
+  const out=c.createGain(); out.gain.value=0.22; out.connect(A.master);
+  tune.forEach(([n,len],i)=>{ const f=N[n]; for(const [mul,amp,dec] of [[1,1,1.6],[2.76,0.25,0.4],[5.4,0.08,0.15]]){ const o=c.createOscillator(); o.type="sine"; o.frequency.value=f*mul; const g=c.createGain();
+      g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(amp,t+0.004); g.gain.exponentialRampToValueAtTime(0.0001,t+dec); o.connect(g).connect(out); o.start(t); o.stop(t+dec+0.05); }
+    t+=len*0.34*(1+Math.max(0,i-8)*0.09); }); }

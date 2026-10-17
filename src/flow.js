@@ -1,4 +1,4 @@
-import { A, audioInit, cloth, creak, hammer, pen, saw, scrape, sitThud, spring } from "./audio.js";
+import { A, audioInit, cloth, creak, hammer, musicBox, pen, saw, scrape, sitThud, spring } from "./audio.js";
 import { drawCard, kan } from "./card.js";
 import { $, S, reset, say } from "./state.js";
 import { ENDING, EPITAPH, INTRO, NIGHTS, PATTERNS, SITTERS } from "./story.js";
@@ -40,13 +40,14 @@ function readerLines(st){ const L=[[2,"（手紙の封を切る音）"],[5,"…�
 export function pickLine(list,done){ if(!list.length){ done(); return; } S.state="pick"; say(""); document.body.classList.add("intro"); const box=$("picks"); box.innerHTML="";
   for(const x of list){ const b=document.createElement("button"); b.innerHTML=`<b>${x.name}</b>${x.frag}`; b.onclick=()=>{ S.letter.push(x); $("pick").hidden=true; document.body.classList.remove("intro"); done(); }; box.appendChild(b); }
   $("pick").hidden=false; }
-const nightSeen=()=>S.seen.map((x,i)=>({name:x.name,frag:S.frags[i]})).slice(S.snap?S.snap.seen.length:0);
+const fragsOf=(x,f)=>[{name:x.name,frag:f||x.frag}].concat(x.frag2?[{name:x.name,frag:x.frag2}]:[]);
+const nightSeen=()=>S.seen.slice(S.snap?S.snap.seen.length:0).flatMap((x,i)=>fragsOf(x,S.frags[(S.snap?S.snap.seen.length:0)+i]));
 // 試作用：三夜の客にはもう座られたことにして、手紙へ書く一節を三度選び、結びの夫人から始める
 export function jumpLetter(){ $("title").hidden=true; S.dark=1; const nights=NIGHTS.map(N=>N.queue.filter(k=>!SITTERS[k].final).map(k=>SITTERS[k]));
   const all=nights.flat(); S.seen=all.slice(0,all.length-nights[2].length); S.frags=S.seen.map(x=>x.frag);
   const step=i=>{ if(i===nights.length){ S.night=2; S.picked=true; S.snap={seen:S.seen.slice(),frags:S.frags.slice(),log:{},letter:S.letter.slice()}; S.queue=nights[2].length?[SITTERS[NIGHTS[2].queue.find(k=>SITTERS[k].final)]]:[]; S.state="wait"; S.wait=1.5; S.steps=0; say("（闇の中で、待つ）",true); return; }
     if(i===2){ for(const x of nights[2]){ S.seen.push(x); S.frags.push(x.frag); } }
-    pickLine(nights[i].map(x=>({name:x.name,frag:x.frag})),()=>step(i+1)); };
+    pickLine(nights[i].flatMap(x=>fragsOf(x)),()=>step(i+1)); };
   step(0); }
 export function nextSitter(){ if(S.queue[0]&&S.queue[0].final&&!S.picked){ S.picked=true; pickLine(nightSeen(),nextSitter); return; } S.state="sit"; beginSit(S.queue.shift()); }
 export function beginSit(st){ if(st.final) st=readerLines(st); S.sitter=st; S.ts=0; S.w=0; S.lineIdx=0; S.listen=null; S.fidgetT=0;
@@ -78,5 +79,5 @@ export function finish(caught){ hideWalk(); $("fin").hidden=true; $("pick").hidd
   $("cardimg").removeAttribute("src"); S.cardBlob=null;
   drawCard(n,heavy,caught).catch(e=>console.error(e));
   // 三夜を越えたら、まず結びの一枚。「手紙を読み返す」で記録へ
-  if(!caught){ $("result").hidden=true; $("fin").hidden=false; sitThud(); $("finbtn").onclick=()=>{ $("fin").hidden=true; $("result").hidden=false; }; } }
+  if(!caught){ $("result").hidden=true; $("fin").hidden=false; sitThud(); setTimeout(()=>{ if(!$("fin").hidden) musicBox(); },4400); $("finbtn").onclick=()=>{ $("fin").hidden=true; $("result").hidden=false; }; } }
 
