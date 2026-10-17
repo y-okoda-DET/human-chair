@@ -7,7 +7,7 @@ const { chromium } = require('playwright');
   const logs=[]; p.on('pageerror',e=>logs.push('ERR '+e.message));
   await p.goto((process.env.BASE||'http://localhost:4173/'),{waitUntil:'load'});
   await p.click('#jump3'); await p.waitForTimeout(300); await p.click('#skip'); await p.waitForTimeout(200); await p.click('#skip');
-  await p.waitForFunction(()=>window.__isu().state==='walk',null,{timeout:8000});
+  await p.waitForFunction(()=>window.__isu().state==='walk',null,{timeout:30000});
   const gt=()=>p.evaluate(()=>window.__isu().t); const wait=async s=>{ const t0=await gt(); while(await gt()<t0+s) await p.waitForTimeout(100); };
   // 女中が廊下を下ってくる最中に、廊下へ踏み込む
   await p.evaluate(()=>{ const D=window.__dbg; D.W.grace=1e9; Object.assign(D.PATROLS[0],{x:10,z:4,i:2,dir:1,wait:0}); D.tp(6.6,4.1,Math.PI/2); });

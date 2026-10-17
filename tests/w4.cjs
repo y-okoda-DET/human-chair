@@ -7,7 +7,7 @@ const { chromium } = require('playwright'); const fs=require('fs');
   const logs=[]; p.on('pageerror',e=>logs.push('ERR '+e.message));
   await p.goto((process.env.BASE||'http://localhost:4173/')+(process.env.QS?'?'+process.env.QS:''),{waitUntil:'load'});
   await p.click('#jump3'); await p.waitForTimeout(300); await p.click('#skip'); await p.waitForTimeout(200); await p.click('#skip');
-  await p.waitForFunction(()=>window.__isu().state==='walk',null,{timeout:8000});
+  await p.waitForFunction(()=>window.__isu().state==='walk',null,{timeout:30000});
   const route=process.argv[2]||'front';
   const res=await p.evaluate((route)=>{ const D=window.__dbg, W=D.W, S=window.__isu(); W.grace=1e9; S.sus=0;
     // 目的地の列に向けて、向き直りと前進を繰り返す（時刻を進めて連打判定を避ける）

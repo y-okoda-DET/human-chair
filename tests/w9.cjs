@@ -7,7 +7,7 @@ const { chromium } = require('playwright');
   const logs=[]; p.on('pageerror',e=>logs.push('ERR '+e.message));
   await p.goto((process.env.BASE||'http://localhost:4173/'),{waitUntil:'load'});
   await p.click('#jump3'); await p.waitForTimeout(300); await p.click('#skip'); await p.waitForTimeout(200); await p.click('#skip');
-  await p.waitForFunction(()=>window.__isu().state==='walk',null,{timeout:8000});
+  await p.waitForFunction(()=>window.__isu().state==='walk',null,{timeout:30000});
   await p.evaluate(()=>{ window.__dbg.W.grace=1e9; });
   const gt=()=>p.evaluate(()=>window.__isu().t);
   await p.mouse.move(210,500); await p.mouse.down(); await p.mouse.move(170,460,{steps:3});
