@@ -29,15 +29,11 @@ float fibers(vec2 uv){ vec2 q=vec2(uv.x*0.8+uv.y*0.6,uv.y*0.8-uv.x*0.6); return 
 float creases(vec2 uv){ float c=0.0; for(int i=0;i<8;i++){ if(i>=uCount) break; vec4 b=uBlobs[i]; vec2 d=uv-b.xy; float r=length(d)/max(b.z,0.001);
     float a=atan(d.y,d.x); float ring=smoothstep(0.55,1.0,r)*smoothstep(2.0,1.15,r);
     c+=b.w*ring*pow(abs(sin(a*7.0+fbm(uv*9.0+float(i))*5.0)),5.0); } return c; }
-// 縫い目：パネルの継ぎ目の筋と、針穴
-float seamLine(float x,float at){ return exp(-pow((x-at)*260.0,2.0)); }
 void main(){
   vec2 uv=vUv;
-  // 形：重み（頂点で）＋ 皺 ＋ 繊維の凹凸 ＋ 縫い目の溝
+  // 形：重み（頂点で）＋ 皺 ＋ 繊維の凹凸
   float fib=fibers(uv), cr=creases(uv);
-  float sx=seamLine(uv.x,0.14)+seamLine(uv.x,0.86), sy=seamLine(uv.y,0.2)+seamLine(uv.y,0.8);
-  float seam=clamp(sx*step(0.2,uv.y)*step(uv.y,0.8)+sy*step(0.14,uv.x)*step(uv.x,0.86),0.0,1.0);
-  float h=vPos.z+cr*0.011+fib*0.0016-seam*0.006+fbm(uv*6.0)*0.01;
+  float h=vPos.z+cr*0.011+fib*0.0016+fbm(uv*6.0)*0.01;
   vec3 P=vec3(vPos.xy,h); vec3 N=normalize(cross(dFdx(P),dFdy(P)));
   // 色：床面の鈍い茶、繊維の明暗、古い染み
   float g=fbm(uv*30.0), stain=smoothstep(0.55,0.8,fbm(uv*3.2+7.0));
@@ -50,17 +46,6 @@ void main(){
   float p=clamp(vP,0.0,1.3);
   col=mix(col,vec3(0.46,0.17,0.1),p*0.42);
   col+=vec3(0.32,0.08,0.02)*uHeat*smoothstep(0.05,1.2,p)*(0.7+0.3*fib);
-  // 縫い糸：継ぎ目に沿って、斜めに渡る糸
-  float along=sx>0.01?uv.y:uv.x; float stitch=step(0.45,fract(along*95.0))*seam;
-  col=mix(col,vec3(0.42,0.36,0.27)*(0.4+diff),stitch*0.55);
-  // 針穴から漏れる光：外の灯りが、点々と差し込む。人が座ると革が張り、穴が開く
-  float hole=(1.0-step(0.18,abs(fract(along*95.0)-0.2)))*seam;
-  float flick=0.85+0.15*sin(uTime*2.3+uv.x*3.0)*sin(uTime*1.3);
-  col+=hole*vec3(1.0,0.74,0.38)*(0.45+p*0.9)*flick;
-  // 鋲：縁に並ぶ真鍮の頭
-  vec2 e=min(uv,1.0-uv); float edge=min(e.x,e.y); float along2=e.x<e.y?uv.y:uv.x;
-  vec2 tc=vec2(fract(along2*24.0)-0.5,(edge-0.045)*24.0); float tack=smoothstep(0.26,0.18,length(tc));
-  col=mix(col,vec3(0.26,0.18,0.08)*(0.45+0.8*smoothstep(0.1,-0.25,tc.x+tc.y)),tack*0.85);
   // 上の継ぎ目の細い光
   float top=exp(-pow((uv.y-0.975)*70.0,2.0))*0.3*(0.85+0.15*sin(uTime*1.7));
   col+=top*vec3(0.9,0.72,0.45);
