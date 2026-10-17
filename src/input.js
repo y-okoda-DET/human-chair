@@ -1,5 +1,5 @@
 import { A, audioInit } from "./audio.js";
-import { beginNight, restartGame, retryNight, startGame } from "./flow.js";
+import { beginNight, jumpLetter, restartGame, retryNight, startGame } from "./flow.js";
 import { cv } from "./interior.js";
 import { $, S, bb, reset } from "./state.js";
 import { W, stick, walkStep, wc } from "./walk.js";
@@ -30,6 +30,7 @@ cv.addEventListener("pointerdown",e=>{ e.preventDefault(); S.hold=S.gaspCd<=0; $
 for(const ev of ["pointerup","pointercancel"]) cv.addEventListener(ev,()=>{ S.hold=false; $("bb").classList.remove("on"); });
 $("start").addEventListener("click",startGame);
 $("jump3").addEventListener("click",()=>{ audioInit(); A.ctx.resume&&A.ctx.resume(); reset(); beginNight(2); });
+$("jumpL").addEventListener("click",()=>{ audioInit(); A.ctx.resume&&A.ctx.resume(); reset(); jumpLetter(); });
 $("again").addEventListener("click",restartGame);
 $("retry").addEventListener("click",retryNight);
 $("save").addEventListener("click",async()=>{ const b=S.cardBlob; if(!b){ $("toast").textContent="画像を描いております。少々お待ちを。"; return; }

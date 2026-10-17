@@ -86,3 +86,16 @@ body:not(.walking) #place{display:none}
 #paper.shake #paperin{animation:pshake .12s steps(2) infinite}
 @keyframes pshake{50%{transform:translate(1px,-1px) rotate(.3deg)}}
 @media (prefers-reduced-motion:reduce){#paper,#paperin p{transition:none}#paper.shake #paperin{animation:none}}
+
+/* 結び：黒地に題と「終」の印だけを置き、一拍おいて手紙へ */
+#fin{background:#000;grid-template-rows:1fr auto;gap:28px;padding-bottom:calc(36px + env(safe-area-inset-bottom,0px))}
+#fin .fincol{display:flex;flex-direction:row-reverse;align-items:flex-start;gap:28px;align-self:center}
+#fin .fincol>*{writing-mode:vertical-rl;white-space:nowrap}
+#fin h1{margin:0;font-size:clamp(42px,8vh,72px);font-weight:800;letter-spacing:.3em;color:#ece2cf;opacity:0;animation:finin 3.2s 1s ease forwards}
+#fin .fk{font-size:13px;letter-spacing:.4em;padding-top:.4em;color:var(--muted);opacity:0;animation:finin 2.4s .2s ease forwards}
+#fin .fincol>.seal{writing-mode:horizontal-tb;align-self:flex-end;display:grid;place-items:center;width:1.6em;height:1.6em;font-size:30px;font-weight:700;color:#c8463a;border:2px solid #c8463a;border-radius:3px;transform:rotate(-4deg);opacity:0;animation:sealin .5s 4.6s steps(3) forwards}
+#fin button{justify-self:center;padding:12px 30px;border:1px solid rgba(227,215,195,.35);background:none;color:var(--muted);font-family:var(--mincho);font-size:14px;letter-spacing:.3em;cursor:pointer;opacity:0;animation:finin 1.6s 6s ease forwards}
+@keyframes finin{to{opacity:1}}
+@keyframes sealin{0%{opacity:0;transform:rotate(-4deg) scale(1.6)}100%{opacity:1;transform:rotate(-4deg) scale(1)}}
+@media (prefers-reduced-motion:reduce){#fin h1,#fin .fk,#fin .seal,#fin button{animation:none;opacity:1}}
+#title .card button.mock+button.mock{margin-top:-8px}

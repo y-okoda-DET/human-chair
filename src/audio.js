@@ -7,7 +7,7 @@ export function audioInit(){ if(A.ctx) return; const c=new (window.AudioContext|
   for(let i=0;i<len;i++){ const w=Math.random()*2-1; last=(last+0.02*w)/1.02; d[i]=last*3.5; } A.brown=buf;
   const wb=c.createBuffer(1,len,c.sampleRate), wd=wb.getChannelData(0); for(let i=0;i<len;i++) wd[i]=Math.random()*2-1; A.white=wb;
   const amb=c.createBufferSource(); amb.buffer=A.brown; amb.loop=true; const af=c.createBiquadFilter(); af.type="lowpass"; af.frequency.value=180;
-  const ag=c.createGain(); ag.gain.value=0.05; amb.connect(af).connect(ag).connect(A.master); amb.start(); loadSamples(); }
+  const ag=c.createGain(); ag.gain.value=0.05; amb.connect(af).connect(ag).connect(A.master); amb.start(); loadSamples(); bakeCreaks(c); }
 // ---------- 録った物音（freesound, CC0）。読み込み前や失敗した時は、合成の音で代わりを務める ----------
 A.smp={};
 const SMP=["knock1","knock2","knock3","bump","leather1","leather2","scrape","maidstep1","maidstep2","clock"];
@@ -21,9 +21,30 @@ export function noiseBurst(buf,dur,gain,ftype,freq,q){ const c=A.ctx; if(!c) ret
   const g=c.createGain(); g.gain.setValueAtTime(gain,c.currentTime); g.gain.exponentialRampToValueAtTime(0.001,c.currentTime+dur); s.connect(f).connect(g).connect(A.master); s.start(); s.stop(c.currentTime+dur+0.05); }
 export function thump(gain){ const c=A.ctx; if(!c) return; const o=c.createOscillator(); o.type="sine"; o.frequency.setValueAtTime(58,c.currentTime); o.frequency.exponentialRampToValueAtTime(38,c.currentTime+0.12);
   const g=c.createGain(); g.gain.setValueAtTime(gain,c.currentTime); g.gain.exponentialRampToValueAtTime(0.001,c.currentTime+0.16); o.connect(g).connect(A.master); o.start(); o.stop(c.currentTime+0.2); }
-export function creak(){ const c=A.ctx; if(!c) return; const o=c.createOscillator(); o.type="sawtooth"; o.frequency.setValueAtTime(210,c.currentTime); o.frequency.exponentialRampToValueAtTime(120,c.currentTime+0.3);
-  const f=c.createBiquadFilter(); f.type="bandpass"; f.frequency.value=600; f.Q.value=6; const g=c.createGain(); g.gain.setValueAtTime(0.12,c.currentTime); g.gain.exponentialRampToValueAtTime(0.001,c.currentTime+0.35);
-  o.connect(f).connect(g).connect(A.master); o.start(); o.stop(c.currentTime+0.4); }
+// 軋み：木と革が擦れて引っかかっては滑る「スティック・スリップ」を、あらかじめ数種、波形に焼いておく
+// 引っかかりの度に小さな打撃が生まれ、それが木の胴（いくつかの共鳴）を鳴らす。打撃の間隔が揺れながら詰まり、また緩む
+function bakeCreak(c,{dur,r0,r1,modes,jit,bright,seed}){ const sr=c.sampleRate, n=Math.floor(dur*sr), b=c.createBuffer(1,n,sr), d=b.getChannelData(0);
+  let rs=seed; const rnd=()=>{ rs=(rs*16807)%2147483647; return rs/2147483647; };
+  const R=modes.map(([f,bw])=>{ const r=Math.exp(-Math.PI*bw/sr); return {a1:2*r*Math.cos(2*Math.PI*f/sr),a2:-r*r,y1:0,y2:0}; });
+  let next=0, amp=0;
+  for(let i=0;i<n;i++){ const t=i/n, env=Math.sin(Math.PI*Math.min(1,t*1.15))**0.7*(1-t*0.35);
+    let x=(rnd()*2-1)*0.02*bright;
+    if(i>=next){ const rate=r0+(r1-r0)*Math.sin(Math.PI*t)+Math.sin(t*23+seed)*6; next=i+sr/Math.max(12,rate)*(1+(rnd()-0.5)*jit); amp=0.6+rnd()*0.4; x+=amp; }
+    let y=0; for(const m of R){ const v=m.a1*m.y1+m.a2*m.y2+x; m.y2=m.y1; m.y1=v; y+=v; }
+    d[i]=y*env; }
+  let mx=0; for(let i=0;i<n;i++) mx=Math.max(mx,Math.abs(d[i])); for(let i=0;i<n;i++) d[i]/=mx||1;
+  // 頭と尻を滑らかに
+  const fade=Math.floor(sr*0.01); for(let i=0;i<fade;i++){ d[i]*=i/fade; d[n-1-i]*=i/fade; }
+  return b; }
+function bakeCreaks(c){ A.creaks=[
+  bakeCreak(c,{dur:0.55,r0:38,r1:110,modes:[[310,60],[740,90],[1460,160],[2650,300]],jit:0.35,bright:1,seed:11}),
+  bakeCreak(c,{dur:0.75,r0:26,r1:70,modes:[[240,50],[610,80],[1180,140],[2300,260]],jit:0.45,bright:0.8,seed:23}),
+  bakeCreak(c,{dur:0.4,r0:60,r1:160,modes:[[420,70],[980,120],[1900,220]],jit:0.25,bright:1.2,seed:37}),
+  bakeCreak(c,{dur:0.9,r0:20,r1:55,modes:[[200,45],[520,70],[1050,130],[2100,240]],jit:0.5,bright:0.7,seed:51})]; }
+export function creak(g=0.5){ const c=A.ctx; if(!c) return; if(!A.creaks) bakeCreaks(c);
+  const s=c.createBufferSource(); s.buffer=A.creaks[Math.floor(Math.random()*A.creaks.length)]; s.playbackRate.value=0.85+Math.random()*0.3;
+  const hp=c.createBiquadFilter(); hp.type="highpass"; hp.frequency.value=120; const lp=c.createBiquadFilter(); lp.type="lowpass"; lp.frequency.value=3200+Math.random()*1200;
+  const v=c.createGain(); v.gain.value=g*0.55; s.connect(hp).connect(lp).connect(v).connect(A.master); s.start(); }
 export const step=(dist)=>noiseBurst(A.brown,0.09,0.5/(1+dist*2),"lowpass",300,1);
 export const sitThud=()=>{ thump(0.9); noiseBurst(A.brown,0.4,0.35,"lowpass",220,1); };
 export const gasp=()=>noiseBurst(A.white,0.5,0.25,"highpass",900,0.7);

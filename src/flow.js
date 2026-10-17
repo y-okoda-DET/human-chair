@@ -41,13 +41,20 @@ export function pickLine(list,done){ if(!list.length){ done(); return; } S.state
   for(const x of list){ const b=document.createElement("button"); b.innerHTML=`<b>${x.name}</b>${x.frag}`; b.onclick=()=>{ S.letter.push(x); $("pick").hidden=true; document.body.classList.remove("intro"); done(); }; box.appendChild(b); }
   $("pick").hidden=false; }
 const nightSeen=()=>S.seen.map((x,i)=>({name:x.name,frag:S.frags[i]})).slice(S.snap?S.snap.seen.length:0);
+// 試作用：三夜の客にはもう座られたことにして、手紙へ書く一節を三度選び、結びの夫人から始める
+export function jumpLetter(){ $("title").hidden=true; S.dark=1; const nights=NIGHTS.map(N=>N.queue.filter(k=>!SITTERS[k].final).map(k=>SITTERS[k]));
+  const all=nights.flat(); S.seen=all.slice(0,all.length-nights[2].length); S.frags=S.seen.map(x=>x.frag);
+  const step=i=>{ if(i===nights.length){ S.night=2; S.picked=true; S.snap={seen:S.seen.slice(),frags:S.frags.slice(),log:{},letter:S.letter.slice()}; S.queue=nights[2].length?[SITTERS[NIGHTS[2].queue.find(k=>SITTERS[k].final)]]:[]; S.state="wait"; S.wait=1.5; S.steps=0; say("（闇の中で、待つ）",true); return; }
+    if(i===2){ for(const x of nights[2]){ S.seen.push(x); S.frags.push(x.frag); } }
+    pickLine(nights[i].map(x=>({name:x.name,frag:x.frag})),()=>step(i+1)); };
+  step(0); }
 export function nextSitter(){ if(S.queue[0]&&S.queue[0].final&&!S.picked){ S.picked=true; pickLine(nightSeen(),nextSitter); return; } S.state="sit"; beginSit(S.queue.shift()); }
 export function beginSit(st){ if(st.final) st=readerLines(st); S.sitter=st; S.ts=0; S.w=0; S.lineIdx=0; S.listen=null; S.fidgetT=0;
   S.targets=PATTERNS[st.pat].map(b=>b.slice()); S.blobs=S.targets.map(b=>[b[0],b[1],b[2],0]); sitThud(); if(!st.dog){ cloth(); spring(); } say(st.dog?"（何かが、ひらりと飛び乗った）":"（何者かが、どっかと腰を下ろした）"); }
 
 export function endSit(){ S.frags.push(S.sitter.frag); S.seen.push(S.sitter); S.sus*=0.7; if(S.sitter.final){ S.sitter=null; S.w=0; S.state="between"; sitThud(); endNight(); return; } S.state="leave"; S.ts=0; say(S.sitter.dog?"（獣は降りて行った）":"（重みが、ふっと去った）",true); }
 
-export function finish(caught){ hideWalk(); $("pick").hidden=true; $("paper").hidden=true; $("paper").classList.remove("on","shake"); S.done=true; S.caught=caught; S.state="result";
+export function finish(caught){ hideWalk(); $("fin").hidden=true; $("pick").hidden=true; $("paper").hidden=true; $("paper").classList.remove("on","shake"); S.done=true; S.caught=caught; S.state="result";
   const n=new Set(S.seen.map(x=>x.name)).size; const heavy=S.seen.slice().sort((a,b)=>b.kg-a.kg)[0];
   const N=NIGHTS[S.night];
   $("rk").textContent=caught?`露見　${N.title}・${N.place}`:"三夜の記録";
@@ -69,5 +76,7 @@ export function finish(caught){ hideWalk(); $("pick").hidden=true; $("paper").hi
   $("retry").hidden=!caught||(S.night===0&&!S.walkCaught); $("retry").textContent=S.walkCaught&&CHECK?"続きから":"この夜から"; $("again").textContent=caught&&S.night>0?"初めから":"もう一度";
   $("toast").textContent=""; $("result").hidden=false;
   $("cardimg").removeAttribute("src"); S.cardBlob=null;
-  drawCard(n,heavy,caught).catch(e=>console.error(e)); }
+  drawCard(n,heavy,caught).catch(e=>console.error(e));
+  // 三夜を越えたら、まず結びの一枚。「手紙を読み返す」で記録へ
+  if(!caught){ $("result").hidden=true; $("fin").hidden=false; sitThud(); $("finbtn").onclick=()=>{ $("fin").hidden=true; $("result").hidden=false; }; } }
 
