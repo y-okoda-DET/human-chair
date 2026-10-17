@@ -32,8 +32,8 @@ export function retryNight(){ audioInit(); const n=S.night, snap=S.snap, from=S.
 function letterOf(){ const got=S.seen.map((x,i)=>({name:x.name,frag:S.frags[i]})).filter(x=>x.name!=="佳子夫人"), L=S.letter.slice();
   for(const g of got){ if(L.length>=3) break; if(!L.some(l=>l.frag===g.frag)) L.push(g); } return L.slice(0,3); }
 // 結びの客：奥様は、私が認めた手紙を、私の上でお読みになる。その間だけ、画面は奥様の目になる（§は便箋の行、§§で便箋を閉じる）
-function readerLines(st){ const L=[[2,"（手紙の封を切る音）"],[5,"……また、見知らぬ方からの原稿だわ。"],[9,"§奥様。"],[12,"§私は、醜い椅子職人でございます。"]];
-  let t=16; for(const l of letterOf()){ L.push([t,`§<b>${l.name}</b>。${l.frag}`]); t+=5.5; }
+function readerLines(st){ const L=[[2,"（手紙の封を切る音）"],[5,"……また、見知らぬ方からの原稿だわ。"],[9,"§奥様、"],[11.5,"§奥様の方では、少しも御存じのない男から、突然、此様な無躾な御手紙を、差上げます罪を、幾重にもお許し下さいませ。"]];
+  let t=18; for(const l of letterOf()){ L.push([t,`§<b>${l.name}</b>。${l.frag}`]); t+=5.5; }
   L.push([t,"§奥様。今、あなたのお掛けになっている、その椅子の中に、"],[t+5,"§§"],[t+6,"（息を呑む音）"],[t+11,"……まさか。"],[t+15,"（夫人は、跳ねるように立ち上がった）"]);
   return Object.assign({},st,{lines:L,dur:t+17,listen:[6.5,t+7]}); }
 // 夜の終わりに、手紙へ書く一節を一つ選ぶ
@@ -60,7 +60,7 @@ export function finish(caught){ hideWalk(); $("fin").hidden=true; $("pick").hidd
   const N=NIGHTS[S.night];
   $("rk").textContent=caught?`露見　${N.title}・${N.place}`:"三夜の記録";
   S.epitaph=caught?EPITAPH[Math.floor(Math.random()*EPITAPH.length)]:"";
-  $("rh").textContent=caught?S.epitaph:"題は『人間椅子』と、付けたいと存じます。";
+  $("rh").textContent=caught?S.epitaph:"では、失礼を顧みず、お願いまで。匆々。";
   let html="";
   const reasons=Object.entries(S.log).map(([k,v])=>`${k}が${kan(v)}度`).join("、");
   if(caught){ html+=`<p>${S.sitter?S.sitter.name:"何者か"}が立ち上がり、蓋を開けたのでございます。${reasons?`${reasons}。それで十分でした。`:""}</p>`; if(S.frags.length) html+=`<p>書きかけの手紙には、こう記してありました。</p>`; }
