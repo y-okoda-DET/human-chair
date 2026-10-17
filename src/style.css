@@ -94,7 +94,8 @@ body:not(.walking) #place{display:none}
 #fin .fincol>*{writing-mode:vertical-rl;white-space:nowrap}
 #fin h1{margin:0;font-size:clamp(42px,8vh,72px);font-weight:800;letter-spacing:.3em;color:#ece2cf;opacity:0;animation:finin 3.2s 1s ease forwards}
 #fin .fk{font-size:13px;letter-spacing:.4em;padding-top:.4em;color:var(--muted);opacity:0;animation:finin 2.4s .2s ease forwards}
-#fin button{justify-self:center;padding:12px 30px;border:1px solid rgba(227,215,195,.35);background:none;color:var(--muted);font-family:var(--mincho);font-size:14px;letter-spacing:.3em;cursor:pointer;opacity:0;animation:finin 1.6s 6s ease forwards}
+#fin .finbtns{justify-self:center;display:flex;flex-direction:column;gap:12px}
+#fin button{padding:12px 30px;border:1px solid rgba(227,215,195,.35);background:none;color:var(--muted);font-family:var(--mincho);font-size:14px;letter-spacing:.3em;cursor:pointer;opacity:0;animation:finin 1.6s 6s ease forwards}
 @keyframes finin{to{opacity:1}}
 @media (prefers-reduced-motion:reduce){#fin h1,#fin .fk,#fin button{animation:none;opacity:1}}
 #title .card button.mock+button.mock{margin-top:-8px}
