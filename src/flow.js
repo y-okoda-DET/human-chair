@@ -28,7 +28,16 @@ export function endNight(){ if(S.night+1<NIGHTS.length) beginNight(S.night+1); e
 export function startGame(){ beginIntro(); }
 export function restartGame(){ audioInit(); reset(); beginNight(0,true); }
 export function retryNight(){ audioInit(); const n=S.night, snap=S.snap, from=S.walkCaught?CHECK:null; reset(); S.seen=snap.seen; S.frags=snap.frags; S.log=snap.log; beginNight(n,true,from||undefined); }
-export function beginSit(st){ S.sitter=st; S.ts=0; S.w=0; S.lineIdx=0; S.listen=null; S.fidgetT=0;
+// 結びの客：奥様は、私が三夜で書き溜めた手紙の断片を、私の上で、声に出してお読みになる
+function readerLines(st){ const got=S.seen.map((x,i)=>[x,S.frags[i]]).filter(([x])=>x.name!=="佳子夫人"&&!x.dog);
+  const pick=got.length<=3?got:[got[0],got[Math.floor(got.length/2)],got[got.length-1]];
+  const clip=f=>f.split("。").filter(Boolean).slice(0,2).join("。")+"。";
+  const L=[[2,"（手紙の封を切る音）"],[5,"……また、見知らぬ方からの原稿だわ。"],[9,"……『奥様、私は、醜い椅子職人でございます』……"]];
+  pick.forEach(([x,f],k)=>L.push([13+k*5,`……『${x.name}。${clip(f)}』……`]));
+  const t=13+pick.length*5;
+  L.push([t,"（頁を繰る手が、止まった）"],[t+3,"……『奥様。今、あなたのお掛けになっている、その椅子の中に』……"],[t+8,"（息を呑む音）"],[t+12,"……まさか。"],[t+16,"（夫人は、跳ねるように立ち上がった）"]);
+  return Object.assign({},st,{lines:L,dur:t+18,listen:[11.5,t+9.5]}); }
+export function beginSit(st){ if(st.final) st=readerLines(st); S.sitter=st; S.ts=0; S.w=0; S.lineIdx=0; S.listen=null; S.fidgetT=0;
   S.targets=PATTERNS[st.pat].map(b=>b.slice()); S.blobs=S.targets.map(b=>[b[0],b[1],b[2],0]); sitThud(); if(!st.dog){ cloth(); spring(); } say(st.dog?"（何かが、ひらりと飛び乗った）":"（何者かが、どっかと腰を下ろした）"); }
 
 export function endSit(){ S.frags.push(S.sitter.frag); S.seen.push(S.sitter); S.sus*=0.7; if(S.sitter.final){ S.sitter=null; S.w=0; S.state="between"; sitThud(); endNight(); return; } S.state="leave"; S.ts=0; say(S.sitter.dog?"（獣は降りて行った）":"（重みが、ふっと去った）",true); }
